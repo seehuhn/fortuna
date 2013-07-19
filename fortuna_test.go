@@ -8,7 +8,7 @@ func TestReseed(t *testing.T) {
 	rng := &Fortuna{}
 	rng.Init()
 	rng.Reseed(nil)
-	if len(rng.k) != fortunaKeySize {
+	if len(rng.key) != keySize {
 		t.Error("wrong key size")
 	}
 }
