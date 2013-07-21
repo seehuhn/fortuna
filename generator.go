@@ -11,6 +11,10 @@ import (
 // An example of a function which is of this type is aes.NewCipher.
 type NewCipher func([]byte) (cipher.Block, error)
 
+// Generator holds the state of one instance of the Fortuna pseudo
+// random number generator.  Randomness can be extracted using the
+// PseudoRandomData method.  Generator also implements the rand.Source
+// interface.
 type Generator struct {
 	newCipher NewCipher
 	key       []byte
