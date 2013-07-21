@@ -18,7 +18,8 @@ type Generator struct {
 }
 
 func (gen *Generator) inc() {
-	for i := len(gen.counter) - 1; i >= 0; i-- {
+	// The counter is stored least-signigicant byte first.
+	for i := 0; i < len(gen.counter); i++ {
 		gen.counter[i]++
 		if gen.counter[i] != 0 {
 			break
