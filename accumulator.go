@@ -11,37 +11,33 @@ import (
 const minPoolSize = 64
 
 type Accumulator struct {
-	gen         *Generator
-	reseedCount int
-	lastReseed  time.Time
+	genMutex sync.Mutex
+	gen      *Generator
 
 	poolMutex    sync.Mutex
+	reseedCount  int
+	lastReseed   time.Time
 	pool         [32]hash.Hash
 	poolZeroSize int
-	distribute   map[uint8]uint8
 }
 
-func NewAccumulator(newCipher NewCipher) (*Accumulator, error) {
-	acc := &Accumulator{}
-
-	gen, err := NewGenerator(newCipher)
-	if err != nil {
-		return nil, err
+func NewAccumulator(newCipher NewCipher) *Accumulator {
+	acc := &Accumulator{
+		gen: NewGenerator(newCipher),
 	}
-	acc.gen = gen
-
 	for i := 0; i < len(acc.pool); i++ {
 		acc.pool[i] = sha256d.New()
 	}
-
-	return acc, nil
+	return acc
 }
 
-func (acc *Accumulator) RandomData(n int) ([]byte, error) {
+func (acc *Accumulator) RandomData(n uint) []byte {
 	acc.poolMutex.Lock()
 	now := time.Now()
 	if acc.poolZeroSize < minPoolSize &&
 		now.Sub(acc.lastReseed) > 100*time.Millisecond {
+		acc.lastReseed = now
+		acc.poolZeroSize = 0
 		acc.reseedCount += 1
 
 		seed := []byte{}
@@ -59,17 +55,19 @@ func (acc *Accumulator) RandomData(n int) ([]byte, error) {
 	}
 	acc.poolMutex.Unlock()
 
+	acc.genMutex.Lock()
+	defer acc.genMutex.Unlock()
 	return acc.gen.PseudoRandomData(n)
 }
 
-func (acc *Accumulator) AddRandomEvent(source uint8, data []byte) {
+func (acc *Accumulator) AddRandomEvent(source uint8, pool uint8, data []byte) {
 	acc.poolMutex.Lock()
 	defer acc.poolMutex.Unlock()
 
-	poolIndex := acc.distribute[source]
-	acc.distribute[source] = (acc.distribute[source] + 1) % 32
-	pool := acc.pool[poolIndex]
-
-	pool.Write([]byte{source, byte(len(data))})
-	pool.Write(data)
+	poolHash := acc.pool[pool]
+	poolHash.Write([]byte{source, byte(len(data))})
+	poolHash.Write(data)
+	if pool == 0 {
+		acc.poolZeroSize += 2 + len(data)
+	}
 }

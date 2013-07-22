@@ -9,16 +9,12 @@ import (
 )
 
 func TestOutput(t *testing.T) {
-	rng, err := NewGenerator(aes.NewCipher)
-	if err != nil {
-		t.Fatal(err.Error())
-	}
+	rng := NewGenerator(aes.NewCipher)
 
 	rng.Reseed([]byte{1, 2, 3, 4})
-	out, _ := rng.PseudoRandomData(100)
-	// The reference values in the variable 'correct' are generated
-	// using the "Python Cryptography Toolkit" from
-	// https://www.dlitz.net/software/pycrypto/ .
+	out := rng.PseudoRandomData(100)
+	// The following reference values are generated using the "Python
+	// Cryptography Toolkit", https://www.dlitz.net/software/pycrypto/ .
 	correct := []byte{
 		82, 254, 233, 139, 254, 85, 6, 222, 222, 149, 120, 35, 173, 71, 89,
 		232, 51, 182, 252, 139, 153, 153, 111, 30, 16, 7, 124, 185, 159, 24,
@@ -32,16 +28,32 @@ func TestOutput(t *testing.T) {
 		t.Error("wrong RNG output")
 	}
 
-	rng.Reseed([]byte{5})
-	out, _ = rng.PseudoRandomData(100)
+	out = rng.PseudoRandomData(1<<20 + 100)[1<<20:]
 	correct = []byte{
-		201, 0, 38, 91, 149, 135, 150, 103, 206, 172, 243, 146, 22, 218, 114,
-		200, 52, 54, 26, 45, 169, 60, 123, 161, 30, 131, 6, 142, 2, 41,
-		32, 223, 118, 229, 56, 15, 111, 109, 200, 140, 251, 236, 59, 125, 130,
-		133, 93, 141, 180, 137, 63, 253, 101, 15, 57, 240, 220, 130, 222, 44,
-		237, 160, 125, 201, 224, 63, 229, 34, 143, 133, 24, 7, 189, 93, 91,
-		57, 96, 100, 202, 1, 16, 127, 180, 117, 155, 27, 156, 34, 77, 229,
-		157, 137, 63, 123, 196, 182, 231, 16, 219, 177,
+		122, 164, 26, 67, 102, 65, 30, 217, 219, 113, 14, 86, 214, 146, 185,
+		17, 107, 135, 183, 7, 18, 162, 126, 206, 46, 38, 54, 172, 248, 194,
+		118, 84, 162, 146, 83, 156, 152, 96, 192, 15, 23, 224, 113, 76, 21,
+		8, 226, 41, 161, 171, 197, 180, 138, 236, 126, 137, 101, 25, 219, 225,
+		3, 189, 16, 242, 33, 91, 34, 27, 8, 171, 171, 115, 157, 109, 248,
+		198, 227, 18, 204, 211, 42, 184, 92, 42, 171, 222, 198, 117, 162, 134,
+		116, 109, 77, 195, 187, 139, 37, 78, 224, 63,
+	}
+	if bytes.Compare(out, correct) != 0 {
+		t.Error(out)
+		t.Error(correct)
+		t.Error("wrong RNG output")
+	}
+
+	rng.Reseed([]byte{5})
+	out = rng.PseudoRandomData(100)
+	correct = []byte{
+		217, 168, 141, 167, 46, 9, 218, 188, 98, 124, 109, 128, 242, 22, 189,
+		120, 180, 124, 15, 192, 116, 149, 211, 136, 253, 132, 60, 3, 29, 250,
+		95, 66, 133, 195, 37, 78, 242, 255, 160, 209, 185, 106, 68, 105, 83,
+		145, 165, 72, 179, 167, 53, 254, 183, 251, 128, 69, 78, 156, 219, 26,
+		124, 202, 35, 9, 174, 167, 41, 128, 184, 25, 2, 1, 63, 142, 205,
+		162, 69, 68, 207, 251, 101, 10, 29, 33, 133, 87, 189, 36, 229, 56,
+		17, 100, 138, 49, 79, 239, 210, 189, 141, 46,
 	}
 	if bytes.Compare(out, correct) != 0 {
 		t.Error("wrong RNG output")
@@ -49,10 +61,7 @@ func TestOutput(t *testing.T) {
 }
 
 func TestReseed(t *testing.T) {
-	rng, err := NewGenerator(aes.NewCipher)
-	if err != nil {
-		t.Fatal(err.Error())
-	}
+	rng := NewGenerator(aes.NewCipher)
 	if len(rng.key) != 32 {
 		t.Error("wrong key size")
 	}
@@ -70,10 +79,7 @@ func TestReseed(t *testing.T) {
 }
 
 func TestPrng(t *testing.T) {
-	rng, err := NewGenerator(aes.NewCipher)
-	if err != nil {
-		t.Fatal(err.Error())
-	}
+	rng := NewGenerator(aes.NewCipher)
 	rng.Seed(123)
 
 	prng := rand.New(rng)
@@ -89,5 +95,45 @@ func TestPrng(t *testing.T) {
 	d := (float64(pos) - 0.5*float64(n)) / math.Sqrt(0.25*float64(n))
 	if math.Abs(d) >= 4 {
 		t.Error("wrong distribution")
+	}
+}
+
+func BenchmarkReseed(b *testing.B) {
+	rng := NewGenerator(aes.NewCipher)
+	seed := []byte{1, 2, 3, 4}
+	b.ResetTimer()
+
+	for i := 0; i < b.N; i++ {
+		rng.Reseed(seed)
+	}
+}
+
+func BenchmarkGenerator1(b *testing.B) {
+	rng := NewGenerator(aes.NewCipher)
+	rng.Seed(0)
+
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		rng.PseudoRandomData(1)
+	}
+}
+
+func BenchmarkGenerator1k(b *testing.B) {
+	rng := NewGenerator(aes.NewCipher)
+	rng.Seed(0)
+
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		rng.PseudoRandomData(1024)
+	}
+}
+
+func BenchmarkGenerator4m(b *testing.B) {
+	rng := NewGenerator(aes.NewCipher)
+	rng.Seed(0)
+
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		rng.PseudoRandomData(4 * 1024 * 1024)
 	}
 }

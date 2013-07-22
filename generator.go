@@ -3,21 +3,34 @@ package fortuna
 import (
 	"crypto/cipher"
 
-	"github.com/seehuhn/errors"
 	"github.com/seehuhn/sha256d"
+	"github.com/seehuhn/trace"
 )
 
-// NewCipher represents functions which allocate a new block cipher.
-// An example of a function which is of this type is aes.NewCipher.
+const (
+	// maxBlocks gives the maximal number of blocks to generate until
+	// rekeying is required.
+	maxBlocks = 1 << 16
+)
+
+// NewCipher is the type which represents the function to allocate a
+// new block cipher.  A typical example of a function of this type is
+// aes.NewCipher.
 type NewCipher func([]byte) (cipher.Block, error)
 
 // Generator holds the state of one instance of the Fortuna pseudo
-// random number generator.  Randomness can be extracted using the
-// PseudoRandomData method.  Generator also implements the rand.Source
-// interface.
+// random number generator.  Before use, the generator must be seeded
+// using the Reseed() or Seed() method.  Randomness can then be
+// extracted using the PseudoRandomData() method.  The Generator class
+// implements the rand.Source interface.
+//
+// This Generator class is not safe for use with concurrent accesss.
+// If the generator is used from different Go-routines, the caller
+// must synchronise accesses using sync.Mutex or similar.
 type Generator struct {
 	newCipher NewCipher
 	key       []byte
+	cipher    cipher.Block
 	counter   []byte
 }
 
@@ -31,36 +44,40 @@ func (gen *Generator) inc() {
 	}
 }
 
+func (gen *Generator) setKey(key []byte) {
+	gen.key = key
+	cipher, err := gen.newCipher(gen.key)
+	if err != nil {
+		panic("newCipher() failed, cannot set generator key")
+	}
+	gen.cipher = cipher
+}
+
 // NewGenerator creates a new instance of the Fortuna random number
 // generator.  The function newCipher should normally be aes.NewCipher
 // from the crypto/aes package, but the Serpent or Twofish ciphers can
 // also be used.
-func NewGenerator(newCipher NewCipher) (*Generator, error) {
+func NewGenerator(newCipher NewCipher) *Generator {
 	gen := &Generator{
 		newCipher: newCipher,
-		key:       make([]byte, sha256d.Size),
 	}
+	initialKey := make([]byte, sha256d.Size)
+	gen.setKey(initialKey)
+	gen.counter = make([]byte, gen.cipher.BlockSize())
 
-	// Try whether newCipher works and, at the same time, use the test
-	// cipher to determine the block size.
-	tmpCipher, err := newCipher(gen.key)
-	if err != nil {
-		return nil, errors.NewError(errors.EInvalidArgument,
-			"fortuna/generator",
-			"newCipher() failed with key of length %s: %s",
-			len(gen.key), err.Error())
-	}
-
-	gen.counter = make([]byte, tmpCipher.BlockSize())
-
-	return gen, nil
+	return gen
 }
 
+// Seed uses the current generator state and the given seed value to
+// update the generator state.  Care is taken to make sure that
+// knowledge of the new state after a reseed does not allow to
+// reconstruct previous output values of the generator.
 func (gen *Generator) Reseed(seed []byte) {
+	trace.T("fortuna/generator", trace.PrioDebug, "setting the PRNG seed")
 	hash := sha256d.New()
 	hash.Write(gen.key)
 	hash.Write(seed)
-	gen.key = hash.Sum(nil)
+	gen.setKey(hash.Sum(nil))
 	gen.inc()
 }
 
@@ -73,45 +90,53 @@ func isZero(data []byte) bool {
 	return true
 }
 
-func (gen *Generator) generateBlocks(k int) []byte {
+// generateBlocks appends k blocks of random bits to data and returns
+// the resulting slice.  The size of a block is given by the block
+// size of the underlying cipher, i.e. 16 bytes for AES.
+func (gen *Generator) generateBlocks(data []byte, k uint) []byte {
 	if isZero(gen.counter) {
 		panic("generator not yet seeded")
 	}
 
-	cipher, err := gen.newCipher(gen.key)
-	if err != nil {
-		panic("newCipher() failed")
-	}
-
-	counterSize := len(gen.counter)
-	res := make([]byte, k*counterSize)
-	for i := 0; i < k; i++ {
-		cipher.Encrypt(res[i*counterSize:(i+1)*counterSize], gen.counter)
+	counterSize := uint(len(gen.counter))
+	buf := make([]byte, counterSize)
+	for i := uint(0); i < k; i++ {
+		gen.cipher.Encrypt(buf, gen.counter)
+		data = append(data, buf...)
 		gen.inc()
 	}
 
-	return res
+	return data
 }
 
-func (gen *Generator) numBlocks(n int) int {
-	k := len(gen.counter)
+func (gen *Generator) numBlocks(n uint) uint {
+	k := uint(len(gen.counter))
 	return (n + k - 1) / k
 }
 
-func (gen *Generator) PseudoRandomData(n int) ([]byte, error) {
-	if n < 0 || n > (1<<20) {
-		return nil, errors.NewError(errors.EInvalidArgument,
-			"fortuna/generator",
-			"requested output size outside the valid range 0, ..., 2^20")
+// PseudoRandomData returns a slice of n pseudo-random bytes.  The
+// result can be used as a replacement for a sequence of uniformly
+// distributed and independent bytes.
+func (gen *Generator) PseudoRandomData(n uint) []byte {
+	numBlocks := gen.numBlocks(n)
+	res := make([]byte, 0, numBlocks*uint(len(gen.counter)))
+
+	for numBlocks > 0 {
+		count := numBlocks
+		if count > maxBlocks {
+			count = maxBlocks
+		}
+		res = gen.generateBlocks(res, count)
+		numBlocks -= count
+
+		keySize := uint(len(gen.key))
+		newKey := gen.generateBlocks(nil, gen.numBlocks(keySize))
+		gen.setKey(newKey[:keySize])
 	}
 
-	res := gen.generateBlocks(gen.numBlocks(n))
-
-	keySize := len(gen.key)
-	newKey := gen.generateBlocks(gen.numBlocks(keySize))
-	gen.key = newKey[:keySize]
-
-	return res[:n], nil
+	trace.T("fortuna/generator", trace.PrioDebug,
+		"generated %d pseudo-random bytes", n)
+	return res[:n]
 }
 
 func bytesToInt64(bytes []byte) int64 {
@@ -127,7 +152,7 @@ func bytesToInt64(bytes []byte) int64 {
 // the range 0, 1, ..., 2^63-1.  This function is part of the
 // rand.Source interface.
 func (gen *Generator) Int63() int64 {
-	bytes, _ := gen.PseudoRandomData(8)
+	bytes := gen.PseudoRandomData(8)
 	bytes[0] &= 0x7f
 	return bytesToInt64(bytes)
 }
@@ -141,11 +166,10 @@ func int64ToBytes(x int64) []byte {
 	return bytes
 }
 
-// Seed reseeds the generated, using the given seed value to determine
-// the new generator state.  In contrast to the Reseed method, the
-// Seed method discards any previously used state, thus leading to
-// reproducible results.  This function is part of the rand.Source
-// interface.
+// Seed uses the given seed value to set a new generator state.  In
+// contrast to the Reseed() method, the Seed() method discards the
+// previous state, thus allowing to generate reproducible output.
+// This function is part of the rand.Source interface.
 func (gen *Generator) Seed(seed int64) {
 	bytes := int64ToBytes(seed)
 	gen.key = make([]byte, len(gen.key))
