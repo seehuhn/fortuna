@@ -31,10 +31,12 @@ func NewAccumulator(newCipher NewCipher) *Accumulator {
 	return acc
 }
 
-func (acc *Accumulator) RandomData(n uint) []byte {
+func (acc *Accumulator) tryReseeding() []byte {
 	acc.poolMutex.Lock()
+	defer acc.poolMutex.Unlock()
+
 	now := time.Now()
-	if acc.poolZeroSize < minPoolSize &&
+	if acc.poolZeroSize >= minPoolSize &&
 		now.Sub(acc.lastReseed) > 100*time.Millisecond {
 		acc.lastReseed = now
 		acc.poolZeroSize = 0
@@ -50,13 +52,26 @@ func (acc *Accumulator) RandomData(n uint) []byte {
 				break
 			}
 		}
-
-		acc.gen.Reseed(seed)
+		return seed
 	}
-	acc.poolMutex.Unlock()
+	return nil
+}
 
+func (acc *Accumulator) RandomData(n uint) []byte {
+	seed := acc.tryReseeding()
 	acc.genMutex.Lock()
 	defer acc.genMutex.Unlock()
+	if seed != nil {
+		acc.gen.Reseed(seed)
+	}
+	return acc.gen.PseudoRandomData(n)
+}
+
+func (acc *Accumulator) randomDataUnlocked(n uint) []byte {
+	seed := acc.tryReseeding()
+	if seed != nil {
+		acc.gen.Reseed(seed)
+	}
 	return acc.gen.PseudoRandomData(n)
 }
 

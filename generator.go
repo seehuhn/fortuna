@@ -73,21 +73,17 @@ func NewGenerator(newCipher NewCipher) *Generator {
 // knowledge of the new state after a reseed does not allow to
 // reconstruct previous output values of the generator.
 func (gen *Generator) Reseed(seed []byte) {
-	trace.T("fortuna/generator", trace.PrioDebug, "setting the PRNG seed")
 	hash := sha256d.New()
 	hash.Write(gen.key)
 	hash.Write(seed)
 	gen.setKey(hash.Sum(nil))
 	gen.inc()
+	trace.T("fortuna/generator", trace.PrioDebug, "seed updated")
 }
 
-func isZero(data []byte) bool {
-	for _, b := range data {
-		if b != 0 {
-			return false
-		}
-	}
-	return true
+func (gen *Generator) ReseedInt64(seed int64) {
+	bytes := int64ToBytes(seed)
+	gen.Reseed(bytes)
 }
 
 // generateBlocks appends k blocks of random bits to data and returns
@@ -95,7 +91,7 @@ func isZero(data []byte) bool {
 // size of the underlying cipher, i.e. 16 bytes for AES.
 func (gen *Generator) generateBlocks(data []byte, k uint) []byte {
 	if isZero(gen.counter) {
-		panic("generator not yet seeded")
+		panic("Fortuna generator not yet seeded")
 	}
 
 	counterSize := uint(len(gen.counter))
@@ -139,15 +135,6 @@ func (gen *Generator) PseudoRandomData(n uint) []byte {
 	return res[:n]
 }
 
-func bytesToInt64(bytes []byte) int64 {
-	var res int64
-	res = int64(bytes[0])
-	for _, x := range bytes[1:] {
-		res = res<<8 | int64(x)
-	}
-	return res
-}
-
 // Int63 returns a positive random integer, uniformly distributed on
 // the range 0, 1, ..., 2^63-1.  This function is part of the
 // rand.Source interface.
@@ -157,21 +144,11 @@ func (gen *Generator) Int63() int64 {
 	return bytesToInt64(bytes)
 }
 
-func int64ToBytes(x int64) []byte {
-	bytes := make([]byte, 8)
-	for i := 7; i >= 0; i-- {
-		bytes[i] = byte(x & 0xff)
-		x = x >> 8
-	}
-	return bytes
-}
-
 // Seed uses the given seed value to set a new generator state.  In
 // contrast to the Reseed() method, the Seed() method discards the
 // previous state, thus allowing to generate reproducible output.
 // This function is part of the rand.Source interface.
 func (gen *Generator) Seed(seed int64) {
-	bytes := int64ToBytes(seed)
 	gen.key = make([]byte, len(gen.key))
-	gen.Reseed(bytes)
+	gen.ReseedInt64(seed)
 }

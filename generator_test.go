@@ -9,12 +9,14 @@ import (
 )
 
 func TestOutput(t *testing.T) {
+	// The reference values in this function are generated using the
+	// "Python Cryptography Toolkit",
+	// https://www.dlitz.net/software/pycrypto/ .
+
 	rng := NewGenerator(aes.NewCipher)
 
 	rng.Reseed([]byte{1, 2, 3, 4})
 	out := rng.PseudoRandomData(100)
-	// The following reference values are generated using the "Python
-	// Cryptography Toolkit", https://www.dlitz.net/software/pycrypto/ .
 	correct := []byte{
 		82, 254, 233, 139, 254, 85, 6, 222, 222, 149, 120, 35, 173, 71, 89,
 		232, 51, 182, 252, 139, 153, 153, 111, 30, 16, 7, 124, 185, 159, 24,
