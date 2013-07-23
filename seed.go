@@ -39,6 +39,9 @@ var (
 // installed network interfaces.  In addition, if available, random
 // bytes from the random number generator in the crypto/rand package
 // are used.
+//
+// Use of this function is only required if the Accumulator is used
+// without a seed file.
 func (acc *Accumulator) SetInitialSeed() {
 	acc.genMutex.Lock()
 	defer acc.genMutex.Unlock()
@@ -85,7 +88,7 @@ func (acc *Accumulator) SetInitialSeed() {
 	}
 }
 
-func writeSeed(f *os.File, seed []byte) error {
+func doWriteSeed(f *os.File, seed []byte) error {
 	n, err := f.Write(seed)
 	if err != nil || n != len(seed) {
 		f.Close()
@@ -116,7 +119,7 @@ func writeSeed(f *os.File, seed []byte) error {
 // If reading the seed file fails, for example because the seed file
 // does not exist or is corrupted, errReadFailed is returned.  In this
 // case, the program can continue to run, and after some entropy has
-// accumulated the WriteSeedFile() method should be called to create a
+// accumulated the writeSeedFile() method should be called to create a
 // new seed file for future use.
 //
 // Any other non-nil error indicates that writing the seed file
@@ -171,23 +174,18 @@ func (acc *Accumulator) updateSeedFile(fileName string) error {
 	}
 
 	seed = acc.randomDataUnlocked(64)
-	return writeSeed(f, seed)
+	return doWriteSeed(f, seed)
 }
 
-// WriteSeedFile writes a new Fortuna seed file with name 'fileName'.
-// The purpose of this seed file is to provide a source of randomness
-// for the initial phase of the next run of the same program.  The
-// contents of the seed file must be kept confidential.
-//
-// The function WriteSeedFile should be called on program shutdown and
-// also periodically while the program runs.  Ferguson and Schneier
-// (Practical Cryptography, Wiley, 2003) recommend to write a new seed
-// file "every 10 minutes or so".
+// writeSeedFile writes 64 bytes of random data to a Fortuna seed file
+// with name 'fileName'.  The purpose of this seed file is to provide
+// a source of randomness for the initial phase of the next run of the
+// same program.
 //
 // If the seed file cannot be written, a non-nil error is returned.
-// In this case, an error message should be shown and the random
-// number generator should not be used until the problem is resolved.
-func (acc *Accumulator) WriteSeedFile(fileName string) error {
+// In this case, the random number generator should not be used until
+// the problem is resolved.
+func (acc *Accumulator) writeSeedFile(fileName string) error {
 	f, err := os.OpenFile(fileName,
 		os.O_WRONLY|os.O_CREATE|os.O_TRUNC|os.O_SYNC,
 		os.FileMode(0600))
@@ -205,5 +203,5 @@ func (acc *Accumulator) WriteSeedFile(fileName string) error {
 	}
 
 	seed := acc.RandomData(64)
-	return writeSeed(f, seed)
+	return doWriteSeed(f, seed)
 }

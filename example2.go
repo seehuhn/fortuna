@@ -1,4 +1,4 @@
-// seed_test.go - unit tests for seed.go
+// example2.go - a test program for the fortuna package
 // Copyright (C) 2013  Jochen Voss <voss@seehuhn.de>
 //
 // This program is free software: you can redistribute it and/or modify
@@ -14,37 +14,34 @@
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-package fortuna
+// +build ignore
+
+package main
 
 import (
 	"crypto/aes"
-	"fmt"
-	"io/ioutil"
+	"io"
+	"log"
 	"os"
-	"path"
-	"testing"
+
+	"github.com/seehuhn/fortuna"
 )
 
-func TestSeedfile(t *testing.T) {
-	tempDir, err := ioutil.TempDir("", "")
-	if err != nil {
-		t.Fatalf("TempDir: %v", err)
-	}
-	defer os.RemoveAll(tempDir)
-	seedFileName := path.Join(tempDir, "seed")
+const (
+	outputFileName = "fortuna.out"
+	outputFileSize = 1024 * 1024 * 1024
+)
 
-	fmt.Println(seedFileName)
-
-	acc, _ := NewAccumulator(aes.NewCipher, "")
+func main() {
+	acc, _ := fortuna.NewAccumulator(aes.NewCipher, "")
 	acc.SetInitialSeed()
 
-	err = acc.writeSeedFile(seedFileName)
+	out, err := os.Create(outputFileName)
 	if err != nil {
-		t.Error(err)
+		log.Fatalf("cannot open %s: %s", outputFileName, err.Error())
 	}
+	defer out.Close()
 
-	err = acc.updateSeedFile(seedFileName)
-	if err != nil {
-		t.Error(err)
-	}
+	n, _ := io.CopyN(out, acc, outputFileSize)
+	log.Printf("wrote %d random bytes to %s", n, outputFileName)
 }

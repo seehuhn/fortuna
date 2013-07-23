@@ -84,10 +84,13 @@ func NewGenerator(newCipher NewCipher) *Generator {
 	return gen
 }
 
-// Seed uses the current generator state and the given seed value to
+// Reseed uses the current generator state and the given seed value to
 // update the generator state.  Care is taken to make sure that
 // knowledge of the new state after a reseed does not allow to
 // reconstruct previous output values of the generator.
+//
+// This is like the ReseedInt64() method, but the seed is given as a
+// byte slice instead of as an int64.
 func (gen *Generator) Reseed(seed []byte) {
 	hash := sha256d.New()
 	hash.Write(gen.key)
@@ -97,6 +100,13 @@ func (gen *Generator) Reseed(seed []byte) {
 	trace.T("fortuna/generator", trace.PrioDebug, "seed updated")
 }
 
+// ReseedInt64 uses the current generator state and the given seed
+// value to update the generator state.  Care is taken to make sure
+// that knowledge of the new state after a reseed does not allow to
+// reconstruct previous output values of the generator.
+//
+// This is like the Reseed() method, but the seed is given as an int64
+// instead of as a byte slice.
 func (gen *Generator) ReseedInt64(seed int64) {
 	bytes := int64ToBytes(seed)
 	gen.Reseed(bytes)
@@ -127,7 +137,7 @@ func (gen *Generator) numBlocks(n uint) uint {
 }
 
 // PseudoRandomData returns a slice of n pseudo-random bytes.  The
-// result can be used as a replacement for a sequence of uniformly
+// result can be used as a replacement for a sequence of n uniformly
 // distributed and independent bytes.
 func (gen *Generator) PseudoRandomData(n uint) []byte {
 	numBlocks := gen.numBlocks(n)
@@ -161,9 +171,12 @@ func (gen *Generator) Int63() int64 {
 }
 
 // Seed uses the given seed value to set a new generator state.  In
-// contrast to the Reseed() method, the Seed() method discards the
+// contrast to the Reseed() method, the Seed() method discards all
 // previous state, thus allowing to generate reproducible output.
 // This function is part of the rand.Source interface.
+//
+// Use of this method should be avoided in cryptographic applications,
+// since reproducible output will lead to security vulnerabilities.
 func (gen *Generator) Seed(seed int64) {
 	gen.key = make([]byte, len(gen.key))
 	gen.ReseedInt64(seed)

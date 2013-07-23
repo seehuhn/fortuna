@@ -16,16 +16,18 @@
 
 // Package fortuna implements the Fortuna random number generator by
 // N. Ferguson and B. Schneier.  Fortuna is a cryptographically strong
-// pseudo-random number generator, typical use cases include
+// pseudo-random number generator; typical use cases include
 // generation of keys in cryptographic ciphers and session tokens for
 // web apps.
 //
 // The fortuna random number generator consists of two parts: The
-// accumulator is the high-level random number generator which can use
-// caller-provided randomness (i.e. timings between the user's key
-// presses) to generate truely random output.  The accumulator uses a
-// pseudo random number generator to generate its output; this
-// generator is also available as a stand-alone component.
+// accumulator collects caller-provided randomness (i.e. timings
+// between the user's key presses).  This randomness is then used to
+// seed a pseudo random number generator.  During operation, the
+// randomness from the accumulator is also used to periodically reseed
+// the generator, thus allowing to recover from limited compromises of
+// the generator's state.  Both, the accumulator and the generator are
+// described in separte sections, below.
 //
 // Accumulator
 //
@@ -37,14 +39,15 @@
 //     if err != nil {
 //         panic("cannot initialise the RNG: " + err.Error())
 //     }
-//     defer acc.WriteSeedFile(seedFileName)
+//     defer acc.Close()
 //
-// The argument seedFileName is the name of a small file where
-// randomness is stored between runs of the program.  The program must
-// be able to both read and write this file, and the contents must be
-// kept confidential.  The file is updated every 10 minutes during the
-// program run and should also be updated on shutdown using a call to
-// acc.WriteSeedFile(seedFileName).
+// The argument seedFileName is the name of a file where a small
+// amount of randomness can be stored between runs of the program.
+// The program must be able to both read and write this file, and the
+// contents must be kept confidential.  While the accumulator is in
+// use, the file is updated every 10 minutes.  If a seed file is in
+// used, the Accumulator should be closed using the Close() method
+// after use.
 //
 // If the seedFileName argument equals the empty string "", no seed
 // file is used.  In this case, the generator must be seeded before
@@ -52,7 +55,8 @@
 // generator in this case is to call acc.SetInitialSeed().
 //
 // After the generatator is initialised, randomness can be extracted
-// using the RandomData() method:
+// using the RandomData() and Read() methods.  For example, a slice of
+// 16 random bytes can be obtained using the following command.
 //
 //     data := acc.RandomData(16)
 //
@@ -77,12 +81,12 @@
 //
 // Generator
 //
-// The call Generator provides a pseudo random number generator which
+// The Generator class provides a pseudo random number generator which
 // forms the basis of the Accumulator described above.  New instances
 // of the Fortuna pseudo random number generator can be created using
-// the NewGenerator().  The function newCipher should normally be
-// aes.NewCipher from the crypto/aes package, but the Serpent or
-// Twofish ciphers can also be used:
+// the NewGenerator() function.  The argument newCipher should
+// normally be aes.NewCipher from the crypto/aes package, but the
+// Serpent or Twofish ciphers can also be used:
 //
 //     gen := fortuna.NewGenerator(aes.NewCipher)
 //
@@ -91,7 +95,7 @@
 //
 //     gen.Seed(1234)
 //
-// Uniformly distributed random bytes can the be extracted using the
+// Uniformly distributed random bytes can then be extracted using the
 // PseudoRandomData() method:
 //
 //     data := gen.PseudoRandomData(16)

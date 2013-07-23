@@ -25,17 +25,20 @@ import (
 )
 
 const (
-	minPoolSize           = 48
-	seedFileWriteInterval = 10 * time.Minute
+	minPoolSize            = 48
+	seedFileUpdateInterval = 10 * time.Minute
 )
 
 // Accumulator holds the state of one instance of the Fortuna random
 // number generator.  Randomness can be extracted using the
-// RandomData() method, entropy from the environment should be
-// submitted regularly using the AddRandomEvent() method.  It is safe
-// to access an Accumulator object concurrently from different
-// go-routines.
+// RandomData() and Read() methods.  Entropy from the environment
+// should be submitted regularly using the AddRandomEvent() method.
+// It is safe to access an Accumulator object concurrently from
+// different go-routines.
 type Accumulator struct {
+	seedFileName   string
+	seedFileTicker *time.Ticker
+
 	genMutex sync.Mutex
 	gen      *Generator
 
@@ -52,17 +55,19 @@ type Accumulator struct {
 // also be used.  The argument seedFileName gives the name of a file
 // where a small amount of randomness can be stored between runs of
 // the program; the program must be able to both read and write this
-// file.
+// file.  The contents of the seed file must be kept confidential and
+// seed files must not be shared between concurrently running instances
+// of the random number generator.
 //
 // In case the seed file does not exist or is corrupted, a new seed
-// file is created.  If the seed file cannot be written, and error is
+// file is created.  If the seed file cannot be written, an error is
 // returned.  NewAccumulator() starts a background go-routine which
-// updates the seed file every 10 minutes during the run of the
-// program.
-func NewAccumulator(newCipher NewCipher,
-	seedFileName string) (*Accumulator, error) {
+// updates the seed file every 10 minutes while the Accumulator is in
+// use.
+func NewAccumulator(newCipher NewCipher, seedFileName string) (*Accumulator, error) {
 	acc := &Accumulator{
-		gen: NewGenerator(newCipher),
+		seedFileName: seedFileName,
+		gen:          NewGenerator(newCipher),
 	}
 	for i := 0; i < len(acc.pool); i++ {
 		acc.pool[i] = sha256d.New()
@@ -78,20 +83,49 @@ func NewAccumulator(newCipher NewCipher,
 
 		err := acc.updateSeedFile(seedFileName)
 		if err == errReadFailed {
-			err = acc.WriteSeedFile(seedFileName)
+			err = acc.writeSeedFile(seedFileName)
 		}
 		if err != nil {
 			return nil, err
 		}
+		acc.seedFileTicker = time.NewTicker(seedFileUpdateInterval)
 		go func() {
-			tick := time.Tick(seedFileWriteInterval)
-			for _ = range tick {
-				acc.WriteSeedFile(seedFileName)
+			for _ = range acc.seedFileTicker.C {
+				acc.writeSeedFile(seedFileName)
 			}
 		}()
 	}
 
 	return acc, nil
+}
+
+// AddRandomEvent should be called periodically to add entropy to the
+// state of the random number generator.  The data provided should be
+// derived from quantities which change between calls and which
+// cannnot be (completely) known by an attacker.  Typical sources of
+// randomness include the times between the arrival of network
+// packets, the time between key-presses by the user, and noise from
+// an external microphone.
+//
+// Different sources of randomness should use different values for the
+// 'source' argument.  There are 32 internal pools for storing of
+// randomness, numbered 0, 1, ..., 31; the pool the randomness from
+// the current call is destined for is given by the 'pool' argument.
+// Callers must distribute the randomness from each source uniformly
+// over the pools in a round-robin fashion.  Finally, the argument
+// 'data' gives the randomness to add to the pool.  'data' should be
+// at most 32 bytes long; longer values should be hashed by the caller
+// and the hash be submitted instead.
+func (acc *Accumulator) AddRandomEvent(source uint8, pool uint8, data []byte) {
+	acc.poolMutex.Lock()
+	defer acc.poolMutex.Unlock()
+
+	poolHash := acc.pool[pool]
+	poolHash.Write([]byte{source, byte(len(data))})
+	poolHash.Write(data)
+	if pool == 0 {
+		acc.poolZeroSize += 2 + len(data)
+	}
 }
 
 func (acc *Accumulator) tryReseeding() []byte {
@@ -141,31 +175,21 @@ func (acc *Accumulator) randomDataUnlocked(n uint) []byte {
 	return acc.gen.PseudoRandomData(n)
 }
 
-// AddRandomEvent should be called periodically to add entropy to the
-// state of the random number generator.  The random data provided
-// should be derived from quantities which change between calls and
-// which cannnot be (completely) known by an attacker.  Typical
-// sources of randomness include the times between the arrival of
-// network packets, the time between key-presses by the user, noise
-// from an external microphone, etc.
-//
-// Different sources of randomness should use different values for the
-// 'source' argument.  There are 32 internal pools for storing of
-// randomness, numbered 0, 1, ..., 31; the pool the randomness from
-// the current call is destined for is given by the 'pool' argument.
-// Callers must distribute the randomness from each source uniformly
-// over the pools in a round-robin fashion.  Finally, the argument
-// 'data' gives the randomness to add to the pool.  'data' should be
-// at most 32 bytes long; longer values should be hashed by the caller
-// and the hash be submitted instead.
-func (acc *Accumulator) AddRandomEvent(source uint8, pool uint8, data []byte) {
-	acc.poolMutex.Lock()
-	defer acc.poolMutex.Unlock()
+// Read allows to extract randomness from the Accumulator using the
+// io.Reader interface.  Read fills the byte slice p with random
+// bytes.  The method always reads len(p) bytes and never returns an
+// error.
+func (acc *Accumulator) Read(p []byte) (n int, err error) {
+	copy(p, acc.RandomData(uint(len(p))))
+	return len(p), nil
+}
 
-	poolHash := acc.pool[pool]
-	poolHash.Write([]byte{source, byte(len(data))})
-	poolHash.Write(data)
-	if pool == 0 {
-		acc.poolZeroSize += 2 + len(data)
+// Close should be called before the program exits to ensure that the
+// seed file is correctly updated.
+func (acc *Accumulator) Close() error {
+	if acc.seedFileName == "" {
+		return nil
 	}
+	acc.seedFileTicker.Stop()
+	return acc.writeSeedFile(acc.seedFileName)
 }
