@@ -1,3 +1,19 @@
+// generator.go - a cryptographically strong PRNG
+// Copyright (C) 2013  Jochen Voss <voss@seehuhn.de>
+//
+// This program is free software: you can redistribute it and/or modify
+// it under the terms of the GNU General Public License as published by
+// the Free Software Foundation, either version 3 of the License, or
+// (at your option) any later version.
+//
+// This program is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU General Public License for more details.
+//
+// You should have received a copy of the GNU General Public License
+// along with this program.  If not, see <http://www.gnu.org/licenses/>.
+
 package fortuna
 
 import (
@@ -25,8 +41,8 @@ type NewCipher func([]byte) (cipher.Block, error)
 // implements the rand.Source interface.
 //
 // This Generator class is not safe for use with concurrent accesss.
-// If the generator is used from different Go-routines, the caller
-// must synchronise accesses using sync.Mutex or similar.
+// If the generator is accessed from different Go-routines, the
+// callers must synchronise access using sync.Mutex or similar.
 type Generator struct {
 	newCipher NewCipher
 	key       []byte
@@ -35,7 +51,7 @@ type Generator struct {
 }
 
 func (gen *Generator) inc() {
-	// The counter is stored least-signigicant byte first.
+	// The counter is stored least-significant byte first.
 	for i := 0; i < len(gen.counter); i++ {
 		gen.counter[i]++
 		if gen.counter[i] != 0 {
@@ -53,10 +69,10 @@ func (gen *Generator) setKey(key []byte) {
 	gen.cipher = cipher
 }
 
-// NewGenerator creates a new instance of the Fortuna random number
-// generator.  The function newCipher should normally be aes.NewCipher
-// from the crypto/aes package, but the Serpent or Twofish ciphers can
-// also be used.
+// NewGenerator creates a new instance of the Fortuna pseudo random
+// number generator.  The function newCipher should normally be
+// aes.NewCipher from the crypto/aes package, but the Serpent or
+// Twofish ciphers can also be used.
 func NewGenerator(newCipher NewCipher) *Generator {
 	gen := &Generator{
 		newCipher: newCipher,

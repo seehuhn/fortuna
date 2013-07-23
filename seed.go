@@ -1,3 +1,19 @@
+// seed.go - seed file handling for the Fortuna generator
+// Copyright (C) 2013  Jochen Voss <voss@seehuhn.de>
+//
+// This program is free software: you can redistribute it and/or modify
+// it under the terms of the GNU General Public License as published by
+// the Free Software Foundation, either version 3 of the License, or
+// (at your option) any later version.
+//
+// This program is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU General Public License for more details.
+//
+// You should have received a copy of the GNU General Public License
+// along with this program.  If not, see <http://www.gnu.org/licenses/>.
+
 package fortuna
 
 import (
@@ -12,17 +28,17 @@ import (
 )
 
 var (
-	ErrReadFailed  = errors.New("read error")
-	ErrWriteFailed = errors.New("write error")
+	errReadFailed = errors.New("read error")
 )
 
 // SetInitialSeed sets an initial seed for the Accumulator.  An
 // attempt is made to obtain seeds which differ between machines and
 // between reboots.  To achieve this, the following information is
 // incorporated into the seed: the current time of day, account
-// information for the current user, and information about the network
-// installed interfaces.  In addition, random bytes from the random
-// number generator in the crypto/rand package are used, if available.
+// information for the current user, and information about the
+// installed network interfaces.  In addition, if available, random
+// bytes from the random number generator in the crypto/rand package
+// are used.
 func (acc *Accumulator) SetInitialSeed() {
 	acc.genMutex.Lock()
 	defer acc.genMutex.Unlock()
@@ -74,7 +90,7 @@ func writeSeed(f *os.File, seed []byte) error {
 	if err != nil || n != len(seed) {
 		f.Close()
 		if err == nil {
-			err = ErrWriteFailed
+			err = &os.PathError{Op: "write", Path: f.Name(), Err: nil}
 		}
 		return err
 	}
@@ -98,7 +114,7 @@ func writeSeed(f *os.File, seed []byte) error {
 // Read and update an existing Fortuna seed file.
 //
 // If reading the seed file fails, for example because the seed file
-// does not exist or is corrupted, ErrReadFailed is returned.  In this
+// does not exist or is corrupted, errReadFailed is returned.  In this
 // case, the program can continue to run, and after some entropy has
 // accumulated the WriteSeedFile() method should be called to create a
 // new seed file for future use.
@@ -107,21 +123,21 @@ func writeSeed(f *os.File, seed []byte) error {
 // failed.  In this case, an error message should be shown and the
 // random number generator should not be used until the problem is
 // resolved.
-func (acc *Accumulator) UpdateSeedFile(fileName string) error {
+func (acc *Accumulator) updateSeedFile(fileName string) error {
 	f, err := os.OpenFile(fileName, os.O_RDWR|os.O_SYNC, 0600)
 	if err != nil {
-		return ErrReadFailed
+		return errReadFailed
 	}
 
 	fi, err := f.Stat()
 	if err != nil {
 		f.Close()
-		return ErrReadFailed
+		return errReadFailed
 	} else if fi.Mode()&os.FileMode(0077) != 0 {
 		trace.T("fortuna/seed", trace.PrioInfo,
 			"seed file %q has insecure permissions, not used", fileName)
 		f.Close()
-		return ErrReadFailed
+		return errReadFailed
 	}
 
 	// Allow Read() to read one excess byte (64 + 1 = 65) to check
@@ -132,7 +148,7 @@ func (acc *Accumulator) UpdateSeedFile(fileName string) error {
 		trace.T("fortuna/seed", trace.PrioInfo,
 			"seed file %q is corrupted, not used", fileName)
 		f.Close()
-		return ErrReadFailed
+		return errReadFailed
 	}
 
 	trace.T("fortuna/seed", trace.PrioInfo,
