@@ -20,14 +20,14 @@
 // generation of keys in cryptographic ciphers and session tokens for
 // web apps.
 //
-// The fortuna random number generator consists of two parts: The
+// The Fortuna random number generator consists of two parts: The
 // accumulator collects caller-provided randomness (i.e. timings
 // between the user's key presses).  This randomness is then used to
 // seed a pseudo random number generator.  During operation, the
 // randomness from the accumulator is also used to periodically reseed
 // the generator, thus allowing to recover from limited compromises of
 // the generator's state.  Both, the accumulator and the generator are
-// described in separte sections, below.
+// described in separate sections, below.
 //
 // Accumulator
 //

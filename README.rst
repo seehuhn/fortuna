@@ -35,7 +35,7 @@ even seemingly small details can make a huge difference to the
 security of the method.  For this reason, this implementation tries to
 follow the original description of the Fortuna generator (chapter 10
 of [FS03]_) as closely as possible.  In addition, some effort was made
-to ensure that, given idential seeds, the output of this
+to ensure that, given identical seeds, the output of this
 implementation coincides with the output of the implementation from
 the `Python Cryptography Toolkit`_.
 
@@ -52,14 +52,14 @@ This package can be installed using the ``go get`` command::
 Usage
 -----
 
-The fortuna random number generator consists of two parts: The
+The Fortuna random number generator consists of two parts: The
 accumulator collects caller-provided randomness (i.e. timings between
 the user's key presses).  This randomness is then used to seed a
 pseudo random number generator.  During operation, the randomness from
 the accumulator is also used to periodically reseed the generator,
 thus allowing to recover from limited compromises of the generator's
 state.  Both, the accumulator and the generator are described in
-separte sections, below.
+separate sections, below.
 
 Accumulator
 ...........
@@ -86,7 +86,7 @@ seed file is used.  In this case, the generator must be seeded before
 random output can be generated.  The easiest way to initialise the
 generator in this case is to call ``acc.SetInitialSeed()``.
 
-After the generatator is initialised, randomness can be extracted
+After the generator is initialised, randomness can be extracted
 using the ``RandomData()`` and ``Read()`` methods.  For example, a
 slice of 16 random bytes can be obtained using the following command::
 
