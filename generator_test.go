@@ -57,8 +57,6 @@ func TestOutput(t *testing.T) {
 		116, 109, 77, 195, 187, 139, 37, 78, 224, 63,
 	}
 	if bytes.Compare(out, correct) != 0 {
-		t.Error(out)
-		t.Error(correct)
 		t.Error("wrong RNG output")
 	}
 
