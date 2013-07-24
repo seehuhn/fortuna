@@ -58,15 +58,15 @@ the user's key presses).  This randomness is then used to seed a
 pseudo random number generator.  During operation, the randomness from
 the accumulator is also used to periodically reseed the generator,
 thus allowing to recover from limited compromises of the generator's
-state.  Both, the accumulator and the generator are described in
-separate sections, below.
+state.  The accumulator and the generator are described in separate
+sections, below.
 
 Accumulator
 ...........
 
-The class ``Accumulator`` provides the usual way to use the Fortuna
-random number generator.  A new ``Accumulator`` can be allocated
-using the ``NewAccumulator()`` function::
+The usual way to use the Fortuna random number generator is by
+creating an object of type ``Accumulator``.  A new ``Accumulator`` can
+be allocated using the ``NewAccumulator()`` function::
 
     acc, err := fortuna.NewAccumulator(aes.NewCipher, seedFileName)
     if err != nil {
@@ -78,7 +78,7 @@ The argument ``seedFileName`` is the name of a file where a small
 amount of randomness can be stored between runs of the program.  The
 program must be able to both read and write this file, and the
 contents must be kept confidential.  While the accumulator is in use,
-the file is updated every 10 minutes.  If a seed file is in used, the
+the file is updated every 10 minutes.  If a seed file is used, the
 Accumulator should be closed using the ``Close()`` method after use.
 
 If the ``seedFileName argument`` equals the empty string ``""``, no
