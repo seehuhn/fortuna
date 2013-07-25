@@ -67,14 +67,14 @@
 // the inter-request times in a web-server to the Accumulator:
 //
 //     source := uint8(100)
-//     pool := uint8(0)
+//     seq := uint(0)
 //     lastRequest := time.Now()
 //     http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
 //         now := time.Now()
 //         dt := now.Sub(lastRequest)
 //         lastRequest = now
-//         acc.AddRandomEvent(source, pool, []byte(dt.String()))
-//         pool = (pool + 1) % 32
+//         acc.AddRandomEvent(source, seq, []byte(dt.String()))
+//         seq += 1
 //
 //         ...
 //     })

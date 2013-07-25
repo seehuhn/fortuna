@@ -25,6 +25,7 @@ import (
 )
 
 const (
+	numPools               = 32
 	minPoolSize            = 48
 	seedFileUpdateInterval = 10 * time.Minute
 )
@@ -45,7 +46,7 @@ type Accumulator struct {
 	poolMutex    sync.Mutex
 	reseedCount  int
 	lastReseed   time.Time
-	pool         [32]hash.Hash
+	pool         [numPools]hash.Hash
 	poolZeroSize int
 }
 
@@ -108,15 +109,14 @@ func NewAccumulator(newCipher NewCipher, seedFileName string) (*Accumulator, err
 // an external microphone.
 //
 // Different sources of randomness should use different values for the
-// 'source' argument.  There are 32 internal pools for storing of
-// randomness, numbered 0, 1, ..., 31; the pool the randomness from
-// the current call is destined for is given by the 'pool' argument.
-// Callers must distribute the randomness from each source uniformly
-// over the pools in a round-robin fashion.  Finally, the argument
+// 'source' argument.  The value 'seq' is used to spread entropy over
+// the available entropy pools; for each entropy source, sequence
+// values 0, 1, 2, ... should be passed in.  Finally, the argument
 // 'data' gives the randomness to add to the pool.  'data' should be
 // at most 32 bytes long; longer values should be hashed by the caller
 // and the hash be submitted instead.
-func (acc *Accumulator) AddRandomEvent(source uint8, pool uint8, data []byte) {
+func (acc *Accumulator) AddRandomEvent(source uint8, seq uint, data []byte) {
+	pool := uint8(seq % numPools)
 	acc.poolMutex.Lock()
 	defer acc.poolMutex.Unlock()
 

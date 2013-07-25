@@ -48,7 +48,7 @@ func main() {
 
 	// entropy source 0: mix in randomness from crypto/rand every minute
 	go func() {
-		pool0 := uint8(0)
+		seq0 := uint(0)
 
 		tick := time.Tick(time.Minute)
 		for _ = range tick {
@@ -56,12 +56,12 @@ func main() {
 			n, _ := rand.Read(buffer)
 			trace.T("main/entropy", trace.PrioInfo,
 				"adding %d bytes of entropy from crypto/rand", n)
-			acc.AddRandomEvent(0, pool0, buffer)
-			pool0 = (pool0 + 1) % 32
+			acc.AddRandomEvent(0, seq0, buffer)
+			seq0 += 1
 		}
 	}()
 
-	pool1 := uint8(0)
+	seq1 := uint(0)
 	lastRequest := time.Now()
 	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
 		// entropy source 1: time between requests
@@ -71,8 +71,8 @@ func main() {
 		entropy := dt.String()
 		trace.T("main/entropy", trace.PrioInfo,
 			"adding timer entropy %q", entropy)
-		acc.AddRandomEvent(1, pool1, []byte(entropy))
-		pool1 = (pool1 + 1) % 32
+		acc.AddRandomEvent(1, seq1, []byte(entropy))
+		seq1 += 1
 
 		sizeStr := r.URL.Query().Get("len")
 		size, _ := strconv.ParseInt(sizeStr, 0, 32)
@@ -82,6 +82,7 @@ func main() {
 
 		io.CopyN(w, acc, size)
 	})
+	fmt.Println("listening at http://localhost:8080/")
 	err = http.ListenAndServe(":8080", nil)
 	if err != nil {
 		fmt.Printf("error %q, aborting ...\n", err.Error())

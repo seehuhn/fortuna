@@ -32,8 +32,8 @@ func TestAccumulator(t *testing.T) {
 
 	acc.AddRandomEvent(0, 0, make([]byte, 32))
 	acc.AddRandomEvent(0, 0, make([]byte, 32))
-	for i := 0; i < 1000; i++ {
-		acc.AddRandomEvent(1, uint8(i%32), []byte{1, 2})
+	for i := uint(0); i < 1000; i++ {
+		acc.AddRandomEvent(1, i, []byte{1, 2})
 	}
 	out := acc.RandomData(100)
 	correct := []byte{
@@ -86,9 +86,7 @@ func BenchmarkAddRandomEvent(b *testing.B) {
 	acc, _ := NewAccumulator(aes.NewCipher, "")
 
 	b.ResetTimer()
-	pool := uint8(0)
 	for i := 0; i < b.N; i++ {
-		acc.AddRandomEvent(0, pool, []byte{1, 2, 3})
-		pool = (pool + 1) % 32
+		acc.AddRandomEvent(0, uint(i), []byte{1, 2, 3})
 	}
 }
