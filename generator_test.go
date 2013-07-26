@@ -124,32 +124,17 @@ func BenchmarkReseed(b *testing.B) {
 	}
 }
 
-func BenchmarkGenerator1(b *testing.B) {
+func generator(b *testing.B, n uint) {
 	rng := NewGenerator(aes.NewCipher)
 	rng.Seed(0)
 
+	b.SetBytes(int64(n))
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
-		rng.PseudoRandomData(1)
+		rng.PseudoRandomData(n)
 	}
 }
 
-func BenchmarkGenerator1k(b *testing.B) {
-	rng := NewGenerator(aes.NewCipher)
-	rng.Seed(0)
-
-	b.ResetTimer()
-	for i := 0; i < b.N; i++ {
-		rng.PseudoRandomData(1024)
-	}
-}
-
-func BenchmarkGenerator4m(b *testing.B) {
-	rng := NewGenerator(aes.NewCipher)
-	rng.Seed(0)
-
-	b.ResetTimer()
-	for i := 0; i < b.N; i++ {
-		rng.PseudoRandomData(4 * 1024 * 1024)
-	}
-}
+func BenchmarkGenerator16(b *testing.B) { generator(b, 16) }
+func BenchmarkGenerator32(b *testing.B) { generator(b, 32) }
+func BenchmarkGenerator1k(b *testing.B) { generator(b, 1024) }

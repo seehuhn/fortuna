@@ -19,6 +19,8 @@ package fortuna
 import (
 	"bytes"
 	"crypto/aes"
+	"crypto/rand"
+	"io"
 	"testing"
 	"time"
 )
@@ -84,9 +86,44 @@ func TestAccumulator(t *testing.T) {
 
 func BenchmarkAddRandomEvent(b *testing.B) {
 	acc, _ := NewAccumulator(aes.NewCipher, "")
+	acc.SetInitialSeed()
 
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
 		acc.AddRandomEvent(0, uint(i), []byte{1, 2, 3})
 	}
 }
+
+func accumulatorRead(b *testing.B, n int) {
+	acc, _ := NewAccumulator(aes.NewCipher, "")
+	acc.SetInitialSeed()
+	buffer := make([]byte, n)
+
+	b.SetBytes(int64(n))
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		// acc.Read is guaranteed to return the full data in one go
+		// and not to return an error.
+		acc.Read(buffer)
+	}
+}
+
+func BenchmarkAccumulatorRead16(b *testing.B) { accumulatorRead(b, 16) }
+func BenchmarkAccumulatorRead32(b *testing.B) { accumulatorRead(b, 32) }
+func BenchmarkAccumulatorRead1k(b *testing.B) { accumulatorRead(b, 1024) }
+
+func cryptoRandRead(b *testing.B, n int) {
+	buffer := make([]byte, n)
+
+	b.SetBytes(int64(n))
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		if _, err := io.ReadFull(rand.Reader, buffer); err != nil {
+			b.Fatalf(err.Error())
+		}
+	}
+}
+
+func BenchmarkCryptoRandRead16(b *testing.B) { cryptoRandRead(b, 16) }
+func BenchmarkCryptoRandRead32(b *testing.B) { cryptoRandRead(b, 32) }
+func BenchmarkCryptoRandRead1k(b *testing.B) { cryptoRandRead(b, 1024) }
