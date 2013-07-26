@@ -110,7 +110,7 @@ func doWriteSeed(f *os.File, seed []byte) error {
 	}
 
 	trace.T("fortuna/seed", trace.PrioInfo,
-		"new seed data written to %q", f.Name())
+		"writing new seed data to %q", f.Name())
 	return nil
 }
 

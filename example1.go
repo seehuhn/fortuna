@@ -34,11 +34,11 @@ import (
 const seedFileName = "seed.dat"
 
 func myListener(t time.Time, path string, prio trace.Priority, msg string) {
-	fmt.Printf("%s: %s\n", t, msg)
+	fmt.Printf("%s:%s: %s\n", t.Format("15:04:05.000"), path, msg)
 }
 
 func main() {
-	trace.Register(myListener, "", trace.PrioAll)
+	trace.Register(myListener, "", trace.PrioInfo)
 
 	acc, err := fortuna.NewAccumulator(aes.NewCipher, seedFileName)
 	if err != nil {
@@ -79,6 +79,7 @@ func main() {
 		if size <= 0 {
 			size = 16
 		}
+		w.Header().Set("Content-Length", fmt.Sprintf("%d", size))
 
 		io.CopyN(w, acc, size)
 	})
