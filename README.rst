@@ -53,7 +53,7 @@ Usage
 -----
 
 The Fortuna random number generator consists of two parts: The
-accumulator collects caller-provided randomness (i.e. timings between
+accumulator collects caller-provided randomness (e.g. timings between
 the user's key presses).  This randomness is then used to seed a
 pseudo random number generator.  During operation, the randomness from
 the accumulator is also used to periodically reseed the generator,
