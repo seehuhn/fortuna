@@ -94,18 +94,17 @@ slice of 16 random bytes can be obtained using the following command::
 
 Finally, the program using the Accumulator should continuously collect
 randomness from the environment and submit this randomness to the
-Accumulator for incorporation into the random output.  For example,
-code like the following could be used to submit the inter-request
-times in a web-server to the Accumulator::
+Accumulator.  For example, code like the following could be used to
+submit the times between requests in a web-server to source 100 of the
+Accumulator::
 
-    source := uint8(100)
     seq := uint(0)
     lastRequest := time.Now()
     http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
 	now := time.Now()
 	dt := now.Sub(lastRequest)
 	lastRequest = now
-	acc.AddRandomEvent(source, seq, []byte(dt.String()))
+	acc.AddRandomEvent(100, seq, []byte(dt.String()))
 	seq += 1
 
 	...

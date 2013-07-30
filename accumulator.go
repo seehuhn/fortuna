@@ -19,10 +19,13 @@ package fortuna
 import (
 	"crypto/aes"
 	"hash"
+	"strconv"
+	"strings"
 	"sync"
 	"time"
 
 	"github.com/seehuhn/sha256d"
+	"github.com/seehuhn/trace"
 )
 
 const (
@@ -151,15 +154,19 @@ func (acc *Accumulator) tryReseeding() []byte {
 		acc.reseedCount += 1
 
 		seed := []byte{}
+		pools := []string{}
 		for i := uint(0); i < 32; i++ {
 			x := 1 << i
 			if acc.reseedCount%x == 0 {
 				seed = acc.pool[i].Sum(seed)
 				acc.pool[i].Reset()
+				pools = append(pools, strconv.Itoa(int(i)))
 			} else {
 				break
 			}
 		}
+		trace.T("fortuna/seed", trace.PrioInfo,
+			"reseeding from pools %s", strings.Join(pools, " "))
 		return seed
 	}
 	return nil
