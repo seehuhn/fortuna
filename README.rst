@@ -81,10 +81,10 @@ contents must be kept confidential.  While the accumulator is in use,
 the file is updated every 10 minutes.  If a seed file is used, the
 Accumulator should be closed using the ``Close()`` method after use.
 
-If the ``seedFileName argument`` equals the empty string ``""``, no
-seed file is used.  In this case, the generator must be seeded before
-random output can be generated.  The easiest way to initialise the
-generator in this case is to call ``acc.SetInitialSeed()``.
+If the ``seedFileName`` argument equals the empty string ``""``, no
+seed file is used.  In this case, the generator must be seeded
+manually before random output can be generated.  The easiest way to do
+this is by calling ``acc.SetInitialSeed()``.
 
 After the generator is initialised, randomness can be extracted
 using the ``RandomData()`` and ``Read()`` methods.  For example, a

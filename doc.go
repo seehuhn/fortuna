@@ -20,6 +20,10 @@
 // generation of keys in cryptographic ciphers and session tokens for
 // web apps.
 //
+// The homepage of this package is at
+// http://www.seehuhn.de/pages/fortuna .  Please send any comments or
+// bug reports to the program's author, Jochen Voss <voss@seehuhn.de>.
+//
 // The Fortuna random number generator consists of two parts: The
 // accumulator collects caller-provided randomness (e.g. timings
 // between the user's key presses).  This randomness is then used to
@@ -50,9 +54,9 @@
 // use.
 //
 // If the seedFileName argument equals the empty string "", no seed
-// file is used.  In this case, the generator must be seeded before
-// random output can be generated.  The easiest way to initialise the
-// generator in this case is to call acc.SetInitialSeed().
+// file is used.  In this case, the generator must be seeded manually
+// before random output can be generated.  The easiest way to to do
+// this is by calling acc.SetInitialSeed().
 //
 // After the generatator is initialised, randomness can be extracted
 // using the RandomData() and Read() methods.  For example, a slice of
