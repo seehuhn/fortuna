@@ -19,7 +19,6 @@
 package main
 
 import (
-	"crypto/aes"
 	"io"
 	"log"
 	"os"
@@ -33,7 +32,7 @@ const (
 )
 
 func main() {
-	acc, _ := fortuna.NewAccumulator(aes.NewCipher, "")
+	acc, _ := fortuna.NewAccumulatorAES("")
 	acc.SetInitialSeed()
 
 	out, err := os.Create(outputFileName)

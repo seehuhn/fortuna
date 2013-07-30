@@ -18,7 +18,6 @@ package fortuna
 
 import (
 	"bytes"
-	"crypto/aes"
 	"crypto/rand"
 	"io"
 	"testing"
@@ -30,7 +29,7 @@ func TestAccumulator(t *testing.T) {
 	// "Python Cryptography Toolkit",
 	// https://www.dlitz.net/software/pycrypto/ .
 
-	acc, _ := NewAccumulator(aes.NewCipher, "")
+	acc, _ := NewAccumulatorAES("")
 
 	acc.AddRandomEvent(0, 0, make([]byte, 32))
 	acc.AddRandomEvent(0, 0, make([]byte, 32))
@@ -85,7 +84,7 @@ func TestAccumulator(t *testing.T) {
 }
 
 func BenchmarkAddRandomEvent(b *testing.B) {
-	acc, _ := NewAccumulator(aes.NewCipher, "")
+	acc, _ := NewAccumulatorAES("")
 	acc.SetInitialSeed()
 
 	b.ResetTimer()
@@ -95,7 +94,7 @@ func BenchmarkAddRandomEvent(b *testing.B) {
 }
 
 func accumulatorRead(b *testing.B, n int) {
-	acc, _ := NewAccumulator(aes.NewCipher, "")
+	acc, _ := NewAccumulatorAES("")
 	acc.SetInitialSeed()
 	buffer := make([]byte, n)
 

@@ -17,7 +17,6 @@
 package fortuna
 
 import (
-	"crypto/aes"
 	"fmt"
 	"io/ioutil"
 	"os"
@@ -35,7 +34,7 @@ func TestSeedfile(t *testing.T) {
 
 	fmt.Println(seedFileName)
 
-	acc, _ := NewAccumulator(aes.NewCipher, "")
+	acc, _ := NewAccumulatorAES("")
 	acc.SetInitialSeed()
 
 	err = acc.writeSeedFile(seedFileName)

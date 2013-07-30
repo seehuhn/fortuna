@@ -17,6 +17,7 @@
 package fortuna
 
 import (
+	"crypto/aes"
 	"hash"
 	"sync"
 	"time"
@@ -50,21 +51,31 @@ type Accumulator struct {
 	poolZeroSize int
 }
 
-// NewAccumulator creates a new instance of the Fortuna random number
-// generator.  The function newCipher should normally be aes.NewCipher
-// from the crypto/aes package, but the Serpent or Twofish ciphers can
-// also be used.  The argument seedFileName gives the name of a file
-// where a small amount of randomness can be stored between runs of
-// the program; the program must be able to both read and write this
-// file.  The contents of the seed file must be kept confidential and
-// seed files must not be shared between concurrently running instances
-// of the random number generator.
+// NewAccumulatorAES allocates a new instance of the Fortuna random
+// number generator.
+//
+// The argument seedFileName gives the name of a file where a small
+// amount of randomness can be stored between runs of the program; the
+// program must be able to both read and write this file.  The
+// contents of the seed file must be kept confidential and seed files
+// must not be shared between concurrently running instances of the
+// random number generator.
 //
 // In case the seed file does not exist or is corrupted, a new seed
 // file is created.  If the seed file cannot be written, an error is
-// returned.  NewAccumulator() starts a background go-routine which
+// returned.  NewAccumulatorAES() starts a background go-routine which
 // updates the seed file every 10 minutes while the Accumulator is in
 // use.
+func NewAccumulatorAES(seedFileName string) (*Accumulator, error) {
+	return NewAccumulator(aes.NewCipher, seedFileName)
+}
+
+// NewAccumulator allocates a new instance of the Fortuna random
+// number generator.  The argument 'newCipher' allows to choose a
+// block cipher like Serpent or Twofish instead of the default AES.
+// NewAccumulator(aes.NewCipher, seedFileName) is the same as
+// NewAccumulatorAES(seedFileName).  See the documentation for
+// NewAccumulatorAES() for more information.
 func NewAccumulator(newCipher NewCipher, seedFileName string) (*Accumulator, error) {
 	acc := &Accumulator{
 		seedFileName: seedFileName,

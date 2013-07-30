@@ -19,7 +19,6 @@
 package main
 
 import (
-	"crypto/aes"
 	"crypto/rand"
 	"fmt"
 	"io"
@@ -40,7 +39,7 @@ func myListener(t time.Time, path string, prio trace.Priority, msg string) {
 func main() {
 	trace.Register(myListener, "", trace.PrioInfo)
 
-	acc, err := fortuna.NewAccumulator(aes.NewCipher, seedFileName)
+	acc, err := fortuna.NewAccumulatorAES(seedFileName)
 	if err != nil {
 		panic("cannot initialise the RNG: " + err.Error())
 	}

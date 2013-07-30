@@ -33,9 +33,9 @@
 //
 // The usual way to use the Fortuna random number generator is by
 // creating an object of type Accumulator.  A new Accumulator can be
-// allocated using the NewAccumulator() function:
+// allocated using the NewAccumulatorAES() function:
 //
-//     acc, err := fortuna.NewAccumulator(aes.NewCipher, seedFileName)
+//     acc, err := fortuna.NewAccumulatorAES(seedFileName)
 //     if err != nil {
 //         panic("cannot initialise the RNG: " + err.Error())
 //     }
