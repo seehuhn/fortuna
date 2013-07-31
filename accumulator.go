@@ -41,8 +41,8 @@ const (
 // It is safe to access an Accumulator object concurrently from
 // different go-routines.
 type Accumulator struct {
-	seedFileName   string
-	seedFileTicker *time.Ticker
+	seedFileName string
+	stopAutoSave chan<- bool
 
 	genMutex sync.Mutex
 	gen      *Generator
@@ -103,10 +103,18 @@ func NewAccumulator(newCipher NewCipher, seedFileName string) (*Accumulator, err
 		if err != nil {
 			return nil, err
 		}
-		acc.seedFileTicker = time.NewTicker(seedFileUpdateInterval)
+
+		quit := make(chan bool)
+		acc.stopAutoSave = quit
 		go func() {
-			for _ = range acc.seedFileTicker.C {
-				acc.writeSeedFile(seedFileName)
+			ticker := time.Tick(seedFileUpdateInterval)
+			for {
+				select {
+				case <-quit:
+					return
+				case <-ticker:
+					acc.writeSeedFile(seedFileName)
+				}
 			}
 		}()
 	}
@@ -208,6 +216,6 @@ func (acc *Accumulator) Close() error {
 	if acc.seedFileName == "" {
 		return nil
 	}
-	acc.seedFileTicker.Stop()
+	acc.stopAutoSave <- true
 	return acc.writeSeedFile(acc.seedFileName)
 }
