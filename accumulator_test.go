@@ -31,10 +31,10 @@ func TestAccumulator(t *testing.T) {
 
 	acc, _ := NewAccumulatorAES("")
 
-	acc.AddRandomEvent(0, 0, make([]byte, 32))
-	acc.AddRandomEvent(0, 0, make([]byte, 32))
+	acc.addRandomEvent(0, 0, make([]byte, 32))
+	acc.addRandomEvent(0, 0, make([]byte, 32))
 	for i := uint(0); i < 1000; i++ {
-		acc.AddRandomEvent(1, i, []byte{1, 2})
+		acc.addRandomEvent(1, i, []byte{1, 2})
 	}
 	out := acc.RandomData(100)
 	correct := []byte{
@@ -50,8 +50,8 @@ func TestAccumulator(t *testing.T) {
 		t.Error("wrong RNG output")
 	}
 
-	acc.AddRandomEvent(0, 0, make([]byte, 32))
-	acc.AddRandomEvent(0, 0, make([]byte, 32))
+	acc.addRandomEvent(0, 0, make([]byte, 32))
+	acc.addRandomEvent(0, 0, make([]byte, 32))
 	out = acc.RandomData(100)
 	correct = []byte{
 		34, 163, 146, 161, 13, 93, 118, 204, 224, 58, 215, 141, 198, 90, 38,
@@ -80,16 +80,6 @@ func TestAccumulator(t *testing.T) {
 	}
 	if bytes.Compare(out, correct) != 0 {
 		t.Error("wrong RNG output")
-	}
-}
-
-func BenchmarkAddRandomEvent(b *testing.B) {
-	acc, _ := NewAccumulatorAES("")
-	acc.SetInitialSeed()
-
-	b.ResetTimer()
-	for i := 0; i < b.N; i++ {
-		acc.AddRandomEvent(0, uint(i), []byte{1, 2, 3})
 	}
 }
 

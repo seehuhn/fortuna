@@ -30,7 +30,7 @@ import (
 
 const (
 	numPools               = 32
-	minPoolSize            = 48
+	minPoolSize            = 32
 	minReseedInterval      = 100 * time.Millisecond
 	seedFileUpdateInterval = 10 * time.Minute
 )
@@ -38,9 +38,11 @@ const (
 // Accumulator holds the state of one instance of the Fortuna random
 // number generator.  Randomness can be extracted using the
 // RandomData() and Read() methods.  Entropy from the environment
-// should be submitted regularly using the AddRandomEvent() method.
+// should be submitted regularly using channels allocated by the
+// NewEntropyDataSink() or NewEntropyTimeStampSink() methods.
+//
 // It is safe to access an Accumulator object concurrently from
-// different go-routines.
+// different goroutines.
 type Accumulator struct {
 	seedFileName string
 	stopAutoSave chan<- bool
@@ -53,6 +55,9 @@ type Accumulator struct {
 	nextReseed   time.Time
 	pool         [numPools]hash.Hash
 	poolZeroSize int
+
+	sourceMutex sync.Mutex
+	nextSource  uint8
 }
 
 // NewAccumulatorAES allocates a new instance of the Fortuna random
@@ -121,34 +126,6 @@ func NewAccumulator(newCipher NewCipher, seedFileName string) (*Accumulator, err
 	}
 
 	return acc, nil
-}
-
-// AddRandomEvent should be called periodically to add entropy to the
-// state of the random number generator.  The data provided should be
-// derived from quantities which change between calls and which
-// cannnot be (completely) known by an attacker.  Typical sources of
-// randomness include the times between the arrival of network
-// packets, the time between key-presses by the user, and noise from
-// an external microphone.
-//
-// Different sources of randomness should use different values for the
-// 'source' argument.  The value 'seq' is used to spread entropy over
-// the available entropy pools; for each entropy source, sequence
-// values 0, 1, 2, ... should be passed in.  Finally, the argument
-// 'data' gives the randomness to add to the pool.  'data' should be
-// at most 32 bytes long; longer values should be hashed by the caller
-// and the hash be submitted instead.
-func (acc *Accumulator) AddRandomEvent(source uint8, seq uint, data []byte) {
-	pool := seq % numPools
-	acc.poolMutex.Lock()
-	defer acc.poolMutex.Unlock()
-
-	poolHash := acc.pool[pool]
-	poolHash.Write([]byte{source, byte(len(data))})
-	poolHash.Write(data)
-	if pool == 0 {
-		acc.poolZeroSize += 2 + len(data)
-	}
 }
 
 func (acc *Accumulator) tryReseeding() []byte {

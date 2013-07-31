@@ -42,12 +42,14 @@ the `Python Cryptography Toolkit`_.
 .. [FS03] Niels Ferguson, Bruce Schneier: *Practical Cryptography*, Wiley, 2003.
 .. _Python Cryptography Toolkit: https://www.dlitz.net/software/pycrypto/
 
+
 Installation
 ------------
 
 This package can be installed using the ``go get`` command::
 
     go get github.com/seehuhn/fortuna
+
 
 Usage
 -----
@@ -58,8 +60,16 @@ the user's key presses).  This randomness is then used to seed a
 pseudo random number generator.  During operation, the randomness from
 the accumulator is also used to periodically reseed the generator,
 thus allowing to recover from limited compromises of the generator's
-state.  The accumulator and the generator are described in separate
-sections, below.
+state.
+
+The accumulator and the generator are described in separate sections,
+below.  Detailed usage instructions are available via the package's
+online help, either on godoc.org_ or on the command line::
+
+    go doc github.com/seehuhn/fortuna
+
+.. _godoc.org: http://godoc.org/github.com/seehuhn/fortuna
+
 
 Accumulator
 ...........
@@ -79,7 +89,7 @@ amount of randomness can be stored between runs of the program.  The
 program must be able to both read and write this file, and the
 contents must be kept confidential.  While the accumulator is in use,
 the file is updated every 10 minutes.  If a seed file is used, the
-Accumulator should be closed using the ``Close()`` method after use.
+Accumulator must be closed using the ``Close()`` method after use.
 
 If the ``seedFileName`` argument equals the empty string ``""``, no
 seed file is used.  In this case, the generator must be seeded
@@ -92,23 +102,28 @@ slice of 16 random bytes can be obtained using the following command::
 
     data := acc.RandomData(16)
 
-Finally, the program using the Accumulator should continuously collect
-randomness from the environment and submit this randomness to the
-Accumulator.  For example, code like the following could be used to
-submit the times between requests in a web-server to source 100 of the
-Accumulator::
 
-    seq := uint(0)
-    lastRequest := time.Now()
+Entropy Pools
+.............
+
+The Accumulator uses 32 entropy pools to collect randomness from the
+environment.  The use of external entropy helps to recover from
+situations where an attacker obtained (partial) knowledge of the
+generator state.
+
+Any program using the Fortuna generator should continuously collect
+random/unpredictable data and should submit this data to the
+Accumulator.  For example, code like the following could be used to
+submit the times between requests in a web-server::
+
+    sink := acc.NewTimeStampEntropySink()
+    defer close(sink)
     http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
-	now := time.Now()
-	dt := now.Sub(lastRequest)
-	lastRequest = now
-	acc.AddRandomEvent(100, seq, []byte(dt.String()))
-	seq += 1
+	sink <- time.Now()
 
 	...
     })
+
 
 Generator
 .........
@@ -138,10 +153,3 @@ Uniformly distributed random bytes can then be extracted using the
 ``Generator`` implements the ``rand.Source`` interface and thus the
 functions from the ``math/rand`` package can be used to obtain pseudo
 random samples from more complicated distributions.
-
-Detailed usage instructions are available via the package's online
-help, either on godoc.org_ or on the command line::
-
-    go doc github.com/seehuhn/fortuna
-
-.. _godoc.org: http://godoc.org/github.com/seehuhn/fortuna

@@ -32,12 +32,12 @@ import (
 
 const seedFileName = "seed.dat"
 
-func myListener(t time.Time, path string, prio trace.Priority, msg string) {
+func printTrace(t time.Time, path string, prio trace.Priority, msg string) {
 	fmt.Printf("%s:%s: %s\n", t.Format("15:04:05.000"), path, msg)
 }
 
 func main() {
-	trace.Register(myListener, "", trace.PrioInfo)
+	trace.Register(printTrace, "", trace.PrioDebug)
 
 	acc, err := fortuna.NewAccumulatorAES(seedFileName)
 	if err != nil {
@@ -45,33 +45,20 @@ func main() {
 	}
 	defer acc.Close()
 
-	// entropy source 0: mix in randomness from crypto/rand every minute
+	// entropy source 1: submit some randomness from crypto/rand once a minute
 	go func() {
-		seq0 := uint(0)
-
-		tick := time.Tick(time.Minute)
-		for _ = range tick {
+		sink1 := acc.NewEntropyDataSink()
+		for _ = range time.Tick(time.Minute) {
 			buffer := make([]byte, 4)
 			n, _ := rand.Read(buffer)
-			trace.T("main/entropy", trace.PrioInfo,
-				"adding %d bytes of entropy from crypto/rand", n)
-			acc.AddRandomEvent(0, seq0, buffer)
-			seq0 += 1
+			sink1 <- buffer[:n]
 		}
 	}()
 
-	seq1 := uint(0)
-	lastRequest := time.Now()
+	// entropy source 2: submit time between requests
+	sink2 := acc.NewEntropyTimeStampSink()
 	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
-		// entropy source 1: time between requests
-		now := time.Now()
-		dt := now.Sub(lastRequest)
-		lastRequest = now
-		entropy := dt.String()
-		trace.T("main/entropy", trace.PrioInfo,
-			"adding timer entropy %q", entropy)
-		acc.AddRandomEvent(1, seq1, []byte(entropy))
-		seq1 += 1
+		sink2 <- time.Now()
 
 		sizeStr := r.URL.Query().Get("len")
 		size, _ := strconv.ParseInt(sizeStr, 0, 32)
@@ -81,10 +68,15 @@ func main() {
 		w.Header().Set("Content-Length", fmt.Sprintf("%d", size))
 
 		io.CopyN(w, acc, size)
+		trace.T("main", trace.PrioInfo,
+			"sent %d random bytes for %q", size, r.RequestURI)
 	})
-	fmt.Println("listening at http://localhost:8080/")
-	err = http.ListenAndServe(":8080", nil)
+
+	listenAddr := ":8080"
+	trace.T("main", trace.PrioInfo,
+		"listening on http://localhost%s/", listenAddr)
+	err = http.ListenAndServe(listenAddr, nil)
 	if err != nil {
-		fmt.Printf("error %q, aborting ...\n", err.Error())
+		trace.T("main", trace.PrioCritical, "%s", err.Error())
 	}
 }
