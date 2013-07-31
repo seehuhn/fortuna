@@ -31,6 +31,7 @@ import (
 const (
 	numPools               = 32
 	minPoolSize            = 48
+	minReseedInterval      = 100 * time.Millisecond
 	seedFileUpdateInterval = 10 * time.Minute
 )
 
@@ -49,7 +50,7 @@ type Accumulator struct {
 
 	poolMutex    sync.Mutex
 	reseedCount  int
-	lastReseed   time.Time
+	nextReseed   time.Time
 	pool         [numPools]hash.Hash
 	poolZeroSize int
 }
@@ -151,27 +152,26 @@ func (acc *Accumulator) AddRandomEvent(source uint8, seq uint, data []byte) {
 }
 
 func (acc *Accumulator) tryReseeding() []byte {
+	now := time.Now()
+
 	acc.poolMutex.Lock()
 	defer acc.poolMutex.Unlock()
 
-	now := time.Now()
-	if acc.poolZeroSize >= minPoolSize &&
-		now.Sub(acc.lastReseed) > 100*time.Millisecond {
-		acc.lastReseed = now
+	if acc.poolZeroSize >= minPoolSize && now.After(acc.nextReseed) {
+		acc.nextReseed = now.Add(minReseedInterval)
 		acc.poolZeroSize = 0
 		acc.reseedCount += 1
 
-		seed := []byte{}
+		seed := make([]byte, 0, numPools*sha256d.Size)
 		pools := []string{}
-		for i := uint(0); i < 32; i++ {
+		for i := uint(0); i < numPools; i++ {
 			x := 1 << i
-			if acc.reseedCount%x == 0 {
-				seed = acc.pool[i].Sum(seed)
-				acc.pool[i].Reset()
-				pools = append(pools, strconv.Itoa(int(i)))
-			} else {
+			if acc.reseedCount%x != 0 {
 				break
 			}
+			seed = acc.pool[i].Sum(seed)
+			acc.pool[i].Reset()
+			pools = append(pools, strconv.Itoa(int(i)))
 		}
 		trace.T("fortuna/seed", trace.PrioInfo,
 			"reseeding from pools %s", strings.Join(pools, " "))
