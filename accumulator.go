@@ -138,7 +138,7 @@ func NewAccumulator(newCipher NewCipher, seedFileName string) (*Accumulator, err
 // at most 32 bytes long; longer values should be hashed by the caller
 // and the hash be submitted instead.
 func (acc *Accumulator) AddRandomEvent(source uint8, seq uint, data []byte) {
-	pool := uint8(seq % numPools)
+	pool := seq % numPools
 	acc.poolMutex.Lock()
 	defer acc.poolMutex.Unlock()
 
