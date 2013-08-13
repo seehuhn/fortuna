@@ -39,15 +39,15 @@ func printTrace(t time.Time, path string, prio trace.Priority, msg string) {
 func main() {
 	trace.Register(printTrace, "", trace.PrioDebug)
 
-	acc, err := fortuna.NewAccumulatorAES(seedFileName)
+	rng, err := fortuna.NewRNG(seedFileName)
 	if err != nil {
 		panic("cannot initialise the RNG: " + err.Error())
 	}
-	defer acc.Close()
+	defer rng.Close()
 
 	// entropy source 1: submit some randomness from crypto/rand once a minute
 	go func() {
-		sink1 := acc.NewEntropyDataSink()
+		sink1 := rng.NewEntropyDataSink()
 		for _ = range time.Tick(time.Minute) {
 			buffer := make([]byte, 4)
 			n, _ := rand.Read(buffer)
@@ -56,7 +56,7 @@ func main() {
 	}()
 
 	// entropy source 2: submit time between requests
-	sink2 := acc.NewEntropyTimeStampSink()
+	sink2 := rng.NewEntropyTimeStampSink()
 	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
 		sink2 <- time.Now()
 
@@ -67,7 +67,7 @@ func main() {
 		}
 		w.Header().Set("Content-Length", fmt.Sprintf("%d", size))
 
-		io.CopyN(w, acc, size)
+		io.CopyN(w, rng, size)
 		trace.T("main", trace.PrioInfo,
 			"sent %d random bytes for %q", size, r.RequestURI)
 	})

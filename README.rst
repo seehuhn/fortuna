@@ -76,13 +76,13 @@ Accumulator
 
 The usual way to use the Fortuna random number generator is by
 creating an object of type ``Accumulator``.  A new ``Accumulator`` can
-be allocated using the ``NewAccumulatorAES()`` function::
+be allocated using the ``NewRNG()`` function::
 
-    acc, err := fortuna.NewAccumulatorAES(seedFileName)
+    rng, err := fortuna.NewRNG(seedFileName)
     if err != nil {
 	panic("cannot initialise the RNG: " + err.Error())
     }
-    defer acc.Close()
+    defer rng.Close()
 
 The argument ``seedFileName`` is the name of a file where a small
 amount of randomness can be stored between runs of the program.  The
@@ -103,7 +103,7 @@ Randomness can be extracted from the Accumulator using the
 ``RandomData()`` and ``Read()`` methods.  For example, a slice of 16
 random bytes can be obtained using the following command::
 
-    data := acc.RandomData(16)
+    data := rng.RandomData(16)
 
 
 Entropy Pools
@@ -119,7 +119,7 @@ random/unpredictable data and should submit this data to the
 Accumulator.  For example, code like the following could be used to
 submit the times between requests in a web-server::
 
-    sink := acc.NewTimeStampEntropySink()
+    sink := rng.NewTimeStampEntropySink()
     defer close(sink)
     http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
 	sink <- time.Now()

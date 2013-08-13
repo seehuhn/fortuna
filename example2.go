@@ -32,7 +32,7 @@ const (
 )
 
 func main() {
-	acc, _ := fortuna.NewAccumulatorAES("")
+	rng, _ := fortuna.NewRNG("")
 
 	out, err := os.Create(outputFileName)
 	if err != nil {
@@ -40,6 +40,6 @@ func main() {
 	}
 	defer out.Close()
 
-	n, _ := io.CopyN(out, acc, outputFileSize)
+	n, _ := io.CopyN(out, rng, outputFileSize)
 	log.Printf("wrote %d random bytes to %s", n, outputFileName)
 }

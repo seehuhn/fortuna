@@ -34,7 +34,7 @@ func TestSeedfile(t *testing.T) {
 
 	fmt.Println(seedFileName)
 
-	acc, _ := NewAccumulatorAES("")
+	acc, _ := NewRNG("")
 
 	err = acc.writeSeedFile(seedFileName)
 	if err != nil {
