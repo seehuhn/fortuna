@@ -94,6 +94,20 @@ func TestReseed(t *testing.T) {
 	}
 }
 
+func TestSeed(t *testing.T) {
+	rng := NewGenerator(aes.NewCipher)
+
+	for _, seed := range []int64{0, 1, 1 << 62} {
+		rng.Seed(seed)
+		x := rng.PseudoRandomData(1000)
+		rng.Seed(seed)
+		y := rng.PseudoRandomData(1000)
+		if bytes.Compare(x, y) != 0 {
+			t.Error(".Seed() doesn't determine generator state")
+		}
+	}
+}
+
 func TestPrng(t *testing.T) {
 	rng := NewGenerator(aes.NewCipher)
 	rng.Seed(123)

@@ -77,11 +77,19 @@ func NewGenerator(newCipher NewCipher) *Generator {
 	gen := &Generator{
 		newCipher: newCipher,
 	}
+	gen.reset()
+
+	return gen
+}
+
+// reset reverts the generated to the unseeded state.  A new seed must
+// be set using the .Reseed() or .Seed() methods before the generator
+// can be used again.  This is mostly useful for unit testing, to
+// start the PRNG from a known state.
+func (gen *Generator) reset() {
 	initialKey := make([]byte, sha256d.Size)
 	gen.setKey(initialKey)
 	gen.counter = make([]byte, gen.cipher.BlockSize())
-
-	return gen
 }
 
 // Reseed uses the current generator state and the given seed value to
@@ -178,6 +186,6 @@ func (gen *Generator) Int63() int64 {
 // Use of this method should be avoided in cryptographic applications,
 // since reproducible output will lead to security vulnerabilities.
 func (gen *Generator) Seed(seed int64) {
-	gen.key = make([]byte, len(gen.key))
+	gen.reset()
 	gen.ReseedInt64(seed)
 }
