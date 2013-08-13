@@ -35,7 +35,6 @@ func TestSeedfile(t *testing.T) {
 	fmt.Println(seedFileName)
 
 	acc, _ := NewAccumulatorAES("")
-	acc.SetInitialSeed()
 
 	err = acc.writeSeedFile(seedFileName)
 	if err != nil {

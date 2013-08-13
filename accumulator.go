@@ -95,13 +95,9 @@ func NewAccumulator(newCipher NewCipher, seedFileName string) (*Accumulator, err
 	}
 
 	if seedFileName != "" {
-		// We use SetInitialSeed() to protect against missing seed
-		// files.  Since the data from the seed file is mixed into the
-		// data from SetInitialSeed(), and since the latter depends on
-		// the current time, this also protects against old seed files
-		// being restored from backups, etc.
-		acc.SetInitialSeed()
-
+		// The initial seed of the generator depends on the current
+		// time.  This protects us against old seed files being
+		// restored from backups, etc.
 		err := acc.updateSeedFile(seedFileName)
 		if err == errReadFailed {
 			err = acc.writeSeedFile(seedFileName)

@@ -30,6 +30,7 @@ func TestOutput(t *testing.T) {
 	// https://www.dlitz.net/software/pycrypto/ .
 
 	rng := NewGenerator(aes.NewCipher)
+	rng.reset()
 
 	rng.Reseed([]byte{1, 2, 3, 4})
 	out := rng.PseudoRandomData(100)

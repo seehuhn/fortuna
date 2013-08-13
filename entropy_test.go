@@ -23,7 +23,6 @@ import (
 
 func TestPoolSelection(t *testing.T) {
 	acc, _ := NewAccumulatorAES("")
-	acc.SetInitialSeed()
 	sink := acc.NewEntropyDataSink()
 
 	msg := []byte{0}
@@ -41,7 +40,6 @@ func TestPoolSelection(t *testing.T) {
 
 func BenchmarkAddRandomEvent(b *testing.B) {
 	acc, _ := NewAccumulatorAES("")
-	acc.SetInitialSeed()
 	source := acc.allocateSource()
 
 	b.ResetTimer()
@@ -52,7 +50,6 @@ func BenchmarkAddRandomEvent(b *testing.B) {
 
 func BenchmarkDataSink(b *testing.B) {
 	acc, _ := NewAccumulatorAES("")
-	acc.SetInitialSeed()
 	sink := acc.NewEntropyDataSink()
 
 	b.ResetTimer()
@@ -63,7 +60,6 @@ func BenchmarkDataSink(b *testing.B) {
 
 func BenchmarkTimeStampSink(b *testing.B) {
 	acc, _ := NewAccumulatorAES("")
-	acc.SetInitialSeed()
 	sink := acc.NewEntropyTimeStampSink()
 
 	b.ResetTimer()

@@ -33,7 +33,6 @@ const (
 
 func main() {
 	acc, _ := fortuna.NewAccumulatorAES("")
-	acc.SetInitialSeed()
 
 	out, err := os.Create(outputFileName)
 	if err != nil {

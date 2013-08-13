@@ -49,19 +49,21 @@
 // The argument seedFileName is the name of a file where a small
 // amount of randomness can be stored between runs of the program.
 // The program must be able to both read and write this file, and the
-// contents must be kept confidential.  While the accumulator is in
-// use, the file is updated every 10 minutes.  If a seed file is used,
-// the Accumulator must be closed using the Close() method after
-// use.
+// contents must be kept confidential.  If the seedFileName argument
+// equals the empty string "", no entropy is stored between runs.  In
+// this case, the initial seed is only based on the current time of
+// day, the current user name, the list of currently installed network
+// interfaces, and output of the system random number generator.  Not
+// using a seed file can lead to more predictable output in the
+// initial period after the generator has been created; a seed file
+// must be used in security sensitive applications.
 //
-// If the seedFileName argument equals the empty string "", no seed
-// file is used.  In this case, the generator must be seeded manually
-// before random output can be generated.  The easiest way to do this
-// is by calling acc.SetInitialSeed().
+// If a seed file is used, the Accumulator must be closed using the
+// Close() method after use.
 //
-// After the generatator is initialised, randomness can be extracted
-// using the RandomData() and Read() methods.  For example, a slice of
-// 16 random bytes can be obtained using the following command:
+// Randomness can be extracted from the Accumulator using the
+// RandomData() and Read() methods.  For example, a slice of 16 random
+// bytes can be obtained using the following command:
 //
 //     data := acc.RandomData(16)
 //
@@ -98,13 +100,16 @@
 //
 //     gen := fortuna.NewGenerator(aes.NewCipher)
 //
-// Before use, the generator must be seeded using the Seed() or
-// Reseed() functions:
+// The generator can be seeded using the Seed() or Reseed() methods:
 //
 //     gen.Seed(1234)
 //
+// The method .Seed() should be used if reproducible output is
+// required, whereas .Reseed() can be used to add entropy in order to
+// achieve less predictable output.
+//
 // Uniformly distributed random bytes can then be extracted using the
-// PseudoRandomData() method:
+// .PseudoRandomData() method:
 //
 //     data := gen.PseudoRandomData(16)
 //

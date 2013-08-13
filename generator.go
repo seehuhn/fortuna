@@ -18,6 +18,10 @@ package fortuna
 
 import (
 	"crypto/cipher"
+	"crypto/rand"
+	"net"
+	"os/user"
+	"time"
 
 	"github.com/seehuhn/sha256d"
 	"github.com/seehuhn/trace"
@@ -69,15 +73,70 @@ func (gen *Generator) setKey(key []byte) {
 	gen.cipher = cipher
 }
 
+// setInitialSeed sets the initial seed for the Generator.  An
+// attempt is made to obtain seeds which differ between machines and
+// between reboots.  To achieve this, the following information is
+// incorporated into the seed: the current time of day, account
+// information for the current user, and information about the
+// installed network interfaces.  In addition, if available, random
+// bytes from the random number generator in the crypto/rand package
+// are used.
+func (gen *Generator) setInitialSeed() {
+	// source 1: system random number generator
+	buffer := make([]byte, len(gen.key))
+	n, _ := rand.Read(buffer)
+	if n > 0 {
+		trace.T("fortuna/seed", trace.PrioInfo,
+			"using crypto/rand for seed data")
+		gen.Reseed(buffer)
+	}
+
+	// source 2: current time of day
+	now := time.Now()
+	trace.T("fortuna/seed", trace.PrioInfo,
+		"using the current time for seed data")
+	gen.Reseed([]byte(now.String()))
+
+	// source 3: user name and login details
+	user, _ := user.Current()
+	if user != nil {
+		trace.T("fortuna/seed", trace.PrioInfo,
+			"using information about the current user for seed data")
+		gen.Reseed([]byte(user.Uid))
+		gen.Reseed([]byte(user.Gid))
+		gen.Reseed([]byte(user.Username))
+		gen.Reseed([]byte(user.Name))
+		gen.Reseed([]byte(user.HomeDir))
+	}
+
+	// source 4: network interfaces
+	ifaces, _ := net.Interfaces()
+	if ifaces != nil {
+		trace.T("fortuna/seed", trace.PrioInfo,
+			"using network interface information for seed data")
+		for _, iface := range ifaces {
+			gen.ReseedInt64(int64(iface.MTU))
+			gen.Reseed([]byte(iface.Name))
+			gen.Reseed(iface.HardwareAddr)
+			gen.ReseedInt64(int64(iface.Flags))
+		}
+	}
+}
+
 // NewGenerator creates a new instance of the Fortuna pseudo random
 // number generator.  The function newCipher should normally be
 // aes.NewCipher from the crypto/aes package, but the Serpent or
 // Twofish ciphers can also be used.
+//
+// The initial seed is chosen based on the current time, the current
+// user name, the currently installed network interfaces and
+// randomness from the system random number generator.
 func NewGenerator(newCipher NewCipher) *Generator {
 	gen := &Generator{
 		newCipher: newCipher,
 	}
 	gen.reset()
+	gen.setInitialSeed()
 
 	return gen
 }

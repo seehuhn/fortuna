@@ -30,6 +30,7 @@ func TestAccumulator(t *testing.T) {
 	// https://www.dlitz.net/software/pycrypto/ .
 
 	acc, _ := NewAccumulatorAES("")
+	acc.gen.reset()
 
 	acc.addRandomEvent(0, 0, make([]byte, 32))
 	acc.addRandomEvent(0, 0, make([]byte, 32))
@@ -85,7 +86,6 @@ func TestAccumulator(t *testing.T) {
 
 func accumulatorRead(b *testing.B, n int) {
 	acc, _ := NewAccumulatorAES("")
-	acc.SetInitialSeed()
 	buffer := make([]byte, n)
 
 	b.SetBytes(int64(n))
