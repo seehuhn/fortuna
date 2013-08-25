@@ -18,3 +18,9 @@ way.  This file lists a possible directions for future work.
   around modulo 256.  This may allow an attacker to route all entropy
   into the same source, by somehow allocating 255 fake-sources between
   every allocation of a real source.  Is this worth fixing somehow?
+
+- Consider whether some of the recommendations of NIST Special
+  Publication 800-90A [1] are worth implementing.  This includes, in
+  particular, self-tests during operation.
+
+    [1] http://csrc.nist.gov/publications/nistpubs/800-90A/SP800-90A.pdf
