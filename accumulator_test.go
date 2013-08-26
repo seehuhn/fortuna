@@ -84,6 +84,25 @@ func TestAccumulator(t *testing.T) {
 	}
 }
 
+func TestClose(t *testing.T) {
+	acc, _ := NewRNG("")
+	acc.RandomData(1)
+
+	acc.Close()
+	caughtAccessAfterClose := func() (hasPaniced bool) {
+		defer func() {
+			if r := recover(); r != nil {
+				hasPaniced = true
+			}
+		}()
+		acc.RandomData(1)
+		return false
+	}()
+	if ! caughtAccessAfterClose {
+		t.Error("failed to detect RNG access after close")
+	}
+}
+
 func accumulatorRead(b *testing.B, n int) {
 	acc, _ := NewRNG("")
 	buffer := make([]byte, n)

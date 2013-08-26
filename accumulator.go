@@ -190,12 +190,21 @@ func (acc *Accumulator) Read(p []byte) (n int, err error) {
 	return len(p), nil
 }
 
-// Close should be called before the program exits to ensure that the
-// seed file is correctly updated.
+// Close must be called before the program exits to ensure that the
+// seed file is correctly updated.  After Close has been called the
+// Accumulator must not be used any more.
 func (acc *Accumulator) Close() error {
-	if acc.seedFileName == "" {
-		return nil
+	// Reset the underlying PRNG to ensure that (1) the Accumulator
+	// cannot be used any more after Close() has been called and (2)
+	// information about the key is not retained in memory
+	// indefinitely.
+	acc.gen.reset()
+
+	var err error
+	if acc.seedFileName != "" {
+		acc.stopAutoSave <- true
+		err = acc.writeSeedFile(acc.seedFileName)
+		acc.seedFileName= ""
 	}
-	acc.stopAutoSave <- true
-	return acc.writeSeedFile(acc.seedFileName)
+	return err
 }
