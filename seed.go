@@ -18,19 +18,29 @@ package fortuna
 
 import (
 	"errors"
+	"io"
 	"os"
 
 	"github.com/seehuhn/trace"
 )
 
+const (
+	seedFileSize = 64
+)
+
 var (
-	errReadFailed = errors.New("read error")
+	ErrCorruptedSeed = errors.New("seed file corrupted")
+	ErrInsecureSeed  = errors.New("seed file with insecure permissions")
 )
 
 func doWriteSeed(f *os.File, seed []byte) error {
+	_, err := f.Seek(0, os.SEEK_SET)
+	if err != nil {
+		return err
+	}
+
 	n, err := f.Write(seed)
 	if err != nil || n != len(seed) {
-		f.Close()
 		if err == nil {
 			err = &os.PathError{Op: "write", Path: f.Name(), Err: nil}
 		}
@@ -38,12 +48,6 @@ func doWriteSeed(f *os.File, seed []byte) error {
 	}
 
 	err = f.Sync()
-	if err != nil {
-		f.Close()
-		return err
-	}
-
-	err = f.Close()
 	if err != nil {
 		return err
 	}
@@ -53,94 +57,62 @@ func doWriteSeed(f *os.File, seed []byte) error {
 	return nil
 }
 
-// Read and update an existing Fortuna seed file.
+// Read and update the seed file.
 //
-// If reading the seed file fails, for example because the seed file
-// does not exist or is corrupted, errReadFailed is returned.  In this
-// case, the program can continue to run, and after some entropy has
-// accumulated the writeSeedFile() method should be called to create a
-// new seed file for future use.
-//
-// Any other non-nil error indicates that writing the seed file
-// failed.  In this case, an error message should be shown and the
-// random number generator should not be used until the problem is
-// resolved.
-func (acc *Accumulator) updateSeedFile(fileName string) error {
-	f, err := os.OpenFile(fileName, os.O_RDWR|os.O_SYNC, 0600)
+// If the seed file is empty, reading the seed file is omitted.  After
+// (potentially) reading the contents of the seed file, new seed data
+// is written to the file.  In case the seed file is corrupted or has
+// insecure file permissions, an error is returned.
+func (acc *Accumulator) updateSeedFile() error {
+	fi, err := acc.seedFile.Stat()
 	if err != nil {
-		return errReadFailed
-	}
-
-	fi, err := f.Stat()
-	if err != nil {
-		f.Close()
-		return errReadFailed
+		return err
 	} else if fi.Mode()&os.FileMode(0077) != 0 {
 		trace.T("fortuna/seed", trace.PrioInfo,
-			"seed file %q has insecure permissions, not used", fileName)
-		f.Close()
-		return errReadFailed
+			"seed file %q has insecure permissions, aborted",
+			acc.seedFile.Name())
+		return ErrInsecureSeed
 	}
 
-	// Allow Read() to read one excess byte (64 + 1 = 65) to check
-	// whether the input file size is correct.
-	seed := make([]byte, 65)
-	n, err := f.Read(seed)
-	if err != nil || n != 64 || isZero(seed[:64]) {
-		trace.T("fortuna/seed", trace.PrioInfo,
-			"seed file %q is corrupted, not used", fileName)
-		f.Close()
-		return errReadFailed
+	_, err = acc.seedFile.Seek(0, os.SEEK_SET)
+	if err != nil {
+		return err
 	}
-
-	trace.T("fortuna/seed", trace.PrioInfo,
-		"reading seed data from %q", fileName)
 
 	acc.genMutex.Lock()
-	acc.gen.Reseed(seed[:64])
-
-	// At this point we have successfully read the seed data.  We use
-	// this data to update the state of the PRNG, and write a new seed
-	// file for the next run of the program.  To prevent potential
-	// attacks we need to keep the PRNG locked until the new seed file
-	// is safely written to disk.
+	// To prevent attacks we keep the PRNG locked until the new seed
+	// file is safely written to disk.
 	defer acc.genMutex.Unlock()
 
-	_, err = f.Seek(0, os.SEEK_SET)
-	if err != nil {
-		f.Close()
-		return err
+	n := fi.Size()
+	if n == seedFileSize {
+		seed := make([]byte, seedFileSize)
+		_, err := io.ReadFull(acc.seedFile, seed)
+		if err != nil || isZero(seed) {
+			trace.T("fortuna/seed", trace.PrioInfo,
+				"seed file %q is corrupted, not used: %s",
+				acc.seedFile.Name(), err)
+			return ErrCorruptedSeed
+		}
+		trace.T("fortuna/seed", trace.PrioInfo,
+			"reading seed data from %q", acc.seedFile.Name())
+		acc.gen.Reseed(seed)
+	} else if n != 0 {
+		trace.T("fortuna/seed", trace.PrioInfo,
+			"seed file %q has invalid length %d, aborted",
+			acc.seedFile.Name(), n)
+		return ErrCorruptedSeed
 	}
 
-	seed = acc.randomDataUnlocked(64)
-	return doWriteSeed(f, seed)
+	seed := acc.randomDataUnlocked(seedFileSize)
+	return doWriteSeed(acc.seedFile, seed)
 }
 
-// writeSeedFile writes 64 bytes of random data to a Fortuna seed file
-// with name 'fileName'.  The purpose of this seed file is to provide
-// a source of randomness for the initial phase of the next run of the
-// same program.
-//
-// If the seed file cannot be written, a non-nil error is returned.
-// In this case, the random number generator should not be used until
-// the problem is resolved.
-func (acc *Accumulator) writeSeedFile(fileName string) error {
-	f, err := os.OpenFile(fileName,
-		os.O_WRONLY|os.O_CREATE|os.O_TRUNC|os.O_SYNC,
-		os.FileMode(0600))
-	if err != nil {
-		return err
-	}
-
-	// The file permissions given in the open call only apply if the
-	// file does not previously exist; to deal with pre-existing files
-	// we also manually set the file mode here.
-	err = f.Chmod(os.FileMode(0600))
-	if err != nil {
-		f.Close()
-		return err
-	}
-
-	seed := acc.RandomData(64)
-	return doWriteSeed(f, seed)
+// writeSeedFile writes 64 bytes of random data to the Fortuna seed
+// file.  If the seed file cannot be written, a non-nil error is
+// returned.  In this case, the random number generator should not be
+// used until the problem is resolved.
+func (acc *Accumulator) writeSeedFile() error {
+	seed := acc.RandomData(seedFileSize)
+	return doWriteSeed(acc.seedFile, seed)
 }

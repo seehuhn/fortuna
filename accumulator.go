@@ -19,6 +19,7 @@ package fortuna
 import (
 	"crypto/aes"
 	"hash"
+	"os"
 	"strconv"
 	"strings"
 	"sync"
@@ -44,7 +45,7 @@ const (
 // It is safe to access an Accumulator object concurrently from
 // different goroutines.
 type Accumulator struct {
-	seedFileName string
+	seedFile     *os.File
 	stopAutoSave chan<- bool
 
 	genMutex sync.Mutex
@@ -66,13 +67,15 @@ type Accumulator struct {
 // The argument seedFileName gives the name of a file where a small
 // amount of randomness can be stored between runs of the program; the
 // program must be able to both read and write this file.  The
-// contents of the seed file must be kept confidential and seed files
-// must not be shared between concurrently running instances of the
-// random number generator.
+// contents of the seed file must be kept secret and seed files must
+// not be shared between concurrently running instances of the random
+// number generator.
 //
-// In case the seed file does not exist or is corrupted, a new seed
-// file is created.  If the seed file cannot be written, an error is
-// returned.
+// In case the seed file does not exist, a new seed file is created.
+// If a corrupted seed file is found, ErrCorruptedSeed is returned.
+// If a seed file with insecure file permissions is found,
+// ErrInsecureSeed is returned.  If reading or writing the seed
+// otherwise fails, the corresponding error is returned.
 //
 // The returned random generator must be closed using the .Close()
 // method after use.
@@ -94,22 +97,32 @@ var (
 // information.
 func NewAccumulator(newCipher NewCipher, seedFileName string) (*Accumulator, error) {
 	acc := &Accumulator{
-		seedFileName: seedFileName,
-		gen:          NewGenerator(newCipher),
+		gen: NewGenerator(newCipher),
 	}
 	for i := 0; i < len(acc.pool); i++ {
 		acc.pool[i] = sha256d.New()
 	}
 
 	if seedFileName != "" {
-		// The initial seed of the generator depends on the current
-		// time.  This protects us against old seed files being
-		// restored from backups, etc.
-		err := acc.updateSeedFile(seedFileName)
-		if err == errReadFailed {
-			err = acc.writeSeedFile(seedFileName)
-		}
+		seedFile, err := os.OpenFile(seedFileName,
+			os.O_RDWR|os.O_CREATE|os.O_SYNC, os.FileMode(0600))
 		if err != nil {
+			return nil, err
+		}
+		acc.seedFile = seedFile
+
+		err = flock(acc.seedFile)
+		if err != nil {
+			acc.seedFile.Close()
+			return nil, err
+		}
+
+		// The initial seed of the generator depends on the current
+		// time.  This (partially) protects us against old seed files
+		// being restored from backups, etc.
+		err = acc.updateSeedFile()
+		if err != nil {
+			acc.seedFile.Close()
 			return nil, err
 		}
 
@@ -122,7 +135,7 @@ func NewAccumulator(newCipher NewCipher, seedFileName string) (*Accumulator, err
 				case <-quit:
 					return
 				case <-ticker:
-					acc.writeSeedFile(seedFileName)
+					acc.writeSeedFile()
 				}
 			}
 		}()
@@ -195,10 +208,11 @@ func (acc *Accumulator) Read(p []byte) (n int, err error) {
 // Accumulator must not be used any more.
 func (acc *Accumulator) Close() error {
 	var err error
-	if acc.seedFileName != "" {
+	if acc.seedFile != nil {
 		acc.stopAutoSave <- true
-		err = acc.writeSeedFile(acc.seedFileName)
-		acc.seedFileName = ""
+		err = acc.writeSeedFile()
+		acc.seedFile.Close()
+		acc.seedFile = nil
 	}
 
 	// Reset the underlying PRNG to ensure that (1) the Accumulator

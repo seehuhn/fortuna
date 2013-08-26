@@ -4,10 +4,6 @@ aims are to make the user interface as intuitive as possible and to
 reduce the probablity of accidentially using the package in an unsafe
 way.  This file lists a possible directions for future work.
 
-- Consider the possibility of using file-locking on the seed file to
-  prevent the user from accidentially sharing the seed file between
-  concurrently running instances of the generator.
-
 - Following Ferguson and Schneier's description of the algorithm, on
   shutdown all entropy pools are simply discarded.  It seems like a
   good idea to fold the into the generator state instead before

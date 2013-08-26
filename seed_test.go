@@ -17,14 +17,24 @@
 package fortuna
 
 import (
+	"bytes"
 	"fmt"
 	"io/ioutil"
 	"os"
 	"path/filepath"
 	"testing"
+	"time"
+
+	"github.com/seehuhn/trace"
 )
 
+func printTrace(t time.Time, path string, prio trace.Priority, msg string) {
+	fmt.Printf("%s:%s: %s\n", t.Format("15:04:05.000"), path, msg)
+}
+
 func TestSeedfile(t *testing.T) {
+	trace.Register(printTrace, "", trace.PrioAll)
+
 	tempDir, err := ioutil.TempDir("", "")
 	if err != nil {
 		t.Fatalf("TempDir: %v", err)
@@ -32,17 +42,65 @@ func TestSeedfile(t *testing.T) {
 	defer os.RemoveAll(tempDir)
 	seedFileName := filepath.Join(tempDir, "seed")
 
-	fmt.Println(seedFileName)
+	// check that the seed file is created
+	rng, err := NewRNG(seedFileName)
+	if err != nil {
+		t.Fatal(err)
+	}
+	err = rng.Close()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := os.Stat(seedFileName); os.IsNotExist(err) {
+		t.Error("seed file not found")
+	}
 
-	acc, _ := NewRNG("")
-
-	err = acc.writeSeedFile(seedFileName)
+	// check that .updateSeedFile() sets the seed and updates the file
+	rng, err = NewRNG(seedFileName)
+	if err != nil {
+		t.Fatal(err)
+	}
+	rng.gen.reset()
+	before, err := ioutil.ReadFile(seedFileName)
 	if err != nil {
 		t.Error(err)
 	}
-
-	err = acc.updateSeedFile(seedFileName)
+	err = rng.updateSeedFile()
 	if err != nil {
 		t.Error(err)
+	}
+	after, err := ioutil.ReadFile(seedFileName)
+	if err != nil {
+		t.Error(err)
+	}
+	// the following would panic if the seed is not reset
+	rng.RandomData(1)
+	err = rng.Close()
+	if len(before) != seedFileSize || bytes.Compare(before, after) == 0 {
+		t.Error("seed file not correctly updated")
+	}
+
+	// check that insecure seed files are detected
+	os.Chmod(seedFileName, os.FileMode(0644))
+	rng, err = NewRNG(seedFileName)
+	if err != ErrInsecureSeed {
+		t.Error("insecure seed file not detected")
+	}
+	if rng != nil {
+		rng.Close()
+	}
+	os.Chmod(seedFileName, os.FileMode(0600))
+
+	// check that seed files of wrong length are detected
+	err = ioutil.WriteFile(seedFileName, []byte("Hello"), os.FileMode(0600))
+	if err != nil {
+		t.Error(err)
+	}
+	rng, err = NewRNG(seedFileName)
+	if err != ErrCorruptedSeed {
+		t.Error("corrupted seed file not detected:", err)
+	}
+	if rng != nil {
+		rng.Close()
 	}
 }
