@@ -20,7 +20,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"os"
-	"path"
+	"path/filepath"
 	"testing"
 )
 
@@ -30,7 +30,7 @@ func TestSeedfile(t *testing.T) {
 		t.Fatalf("TempDir: %v", err)
 	}
 	defer os.RemoveAll(tempDir)
-	seedFileName := path.Join(tempDir, "seed")
+	seedFileName := filepath.Join(tempDir, "seed")
 
 	fmt.Println(seedFileName)
 

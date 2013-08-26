@@ -20,6 +20,9 @@ import (
 	"bytes"
 	"crypto/rand"
 	"io"
+	"io/ioutil"
+	"os"
+	"path/filepath"
 	"testing"
 	"time"
 )
@@ -85,21 +88,29 @@ func TestAccumulator(t *testing.T) {
 }
 
 func TestClose(t *testing.T) {
-	acc, _ := NewRNG("")
-	acc.RandomData(1)
+	tempDir, err := ioutil.TempDir("", "")
+	if err != nil {
+		t.Fatalf("TempDir: %v", err)
+	}
+	defer os.RemoveAll(tempDir)
+	seedFileName := filepath.Join(tempDir, "seed")
 
-	acc.Close()
-	caughtAccessAfterClose := func() (hasPaniced bool) {
-		defer func() {
-			if r := recover(); r != nil {
-				hasPaniced = true
-			}
-		}()
+	for _, name := range []string{"", seedFileName} {
+		acc, _ := NewRNG(name)
 		acc.RandomData(1)
-		return false
-	}()
-	if ! caughtAccessAfterClose {
-		t.Error("failed to detect RNG access after close")
+		acc.Close()
+		caughtAccessAfterClose := func() (hasPaniced bool) {
+			defer func() {
+				if r := recover(); r != nil {
+					hasPaniced = true
+				}
+			}()
+			acc.RandomData(1)
+			return false
+		}()
+		if !caughtAccessAfterClose {
+			t.Error("failed to detect RNG access after close")
+		}
 	}
 }
 
