@@ -89,16 +89,16 @@ func (acc *Accumulator) updateSeedFile() error {
 		seed := make([]byte, seedFileSize)
 		_, err := io.ReadFull(acc.seedFile, seed)
 		if err != nil || isZero(seed) {
-			trace.T("fortuna/seed", trace.PrioInfo,
+			trace.T("fortuna/seed", trace.PrioError,
 				"seed file %q is corrupted, not used: %s",
 				acc.seedFile.Name(), err)
 			return ErrCorruptedSeed
 		}
 		trace.T("fortuna/seed", trace.PrioInfo,
-			"reading seed data from %q", acc.seedFile.Name())
+			"using %q for seed data", acc.seedFile.Name())
 		acc.gen.Reseed(seed)
 	} else if n != 0 {
-		trace.T("fortuna/seed", trace.PrioInfo,
+		trace.T("fortuna/seed", trace.PrioError,
 			"seed file %q has invalid length %d, aborted",
 			acc.seedFile.Name(), n)
 		return ErrCorruptedSeed

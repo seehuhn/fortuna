@@ -164,7 +164,7 @@ func (gen *Generator) Reseed(seed []byte) {
 	hash.Write(seed)
 	gen.setKey(hash.Sum(nil))
 	gen.inc()
-	trace.T("fortuna/generator", trace.PrioDebug, "seed updated")
+	trace.T("fortuna/generator", trace.PrioVerbose, "seed updated")
 }
 
 // ReseedInt64 uses the current generator state and the given seed
