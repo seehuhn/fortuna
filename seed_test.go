@@ -33,7 +33,7 @@ func printTrace(t time.Time, path string, prio trace.Priority, msg string) {
 }
 
 func TestSeedfile(t *testing.T) {
-	trace.Register(printTrace, "", trace.PrioAll)
+	handle := trace.Register(printTrace, "", trace.PrioDebug)
 
 	tempDir, err := ioutil.TempDir("", "")
 	if err != nil {
@@ -103,4 +103,6 @@ func TestSeedfile(t *testing.T) {
 	if rng != nil {
 		rng.Close()
 	}
+
+	handle.Unregister()
 }
