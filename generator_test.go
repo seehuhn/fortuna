@@ -24,6 +24,12 @@ import (
 	"testing"
 )
 
+func TestConstants(t *testing.T) {
+	if keySize != 32 {
+		t.Error("wrong key size")
+	}
+}
+
 func TestOutput(t *testing.T) {
 	// The reference values in this function are generated using the
 	// "Python Cryptography Toolkit",

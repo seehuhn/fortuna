@@ -19,6 +19,7 @@ package fortuna
 import (
 	"crypto/cipher"
 	"crypto/rand"
+	"io"
 	"net"
 	"os/user"
 	"time"
@@ -31,6 +32,9 @@ const (
 	// maxBlocks gives the maximal number of blocks to generate until
 	// rekeying is required.
 	maxBlocks = 1 << 16
+
+	// keySize gives the size of the internal key in bytes
+	keySize = sha256d.Size
 )
 
 // NewCipher is the type which represents the function to allocate a
@@ -65,6 +69,9 @@ func (gen *Generator) inc() {
 }
 
 func (gen *Generator) setKey(key []byte) {
+	if len(key) != keySize {
+		panic("wrong key size")
+	}
 	gen.key = key
 	cipher, err := gen.newCipher(gen.key)
 	if err != nil {
@@ -83,11 +90,11 @@ func (gen *Generator) setKey(key []byte) {
 // are used.
 func (gen *Generator) setInitialSeed() {
 	// source 1: system random number generator
-	buffer := make([]byte, len(gen.key))
-	n, _ := rand.Read(buffer)
+	buffer := make([]byte, keySize)
+	n, _ := io.ReadFull(rand.Reader, buffer)
 	if n > 0 {
 		trace.T("fortuna/seed", trace.PrioInfo,
-			"using crypto/rand for seed data")
+			"using %d bytes from crypto/rand for seed data", n)
 		gen.Reseed(buffer)
 	}
 
@@ -146,8 +153,8 @@ func NewGenerator(newCipher NewCipher) *Generator {
 // can be used again.  This is mostly useful for unit testing, to
 // start the PRNG from a known state.
 func (gen *Generator) reset() {
-	initialKey := make([]byte, sha256d.Size)
-	gen.setKey(initialKey)
+	zeroKey := make([]byte, keySize)
+	gen.setKey(zeroKey)
 	gen.counter = make([]byte, gen.cipher.BlockSize())
 }
 
@@ -218,7 +225,6 @@ func (gen *Generator) PseudoRandomData(n uint) []byte {
 		res = gen.generateBlocks(res, count)
 		numBlocks -= count
 
-		keySize := uint(len(gen.key))
 		newKey := gen.generateBlocks(nil, gen.numBlocks(keySize))
 		gen.setKey(newKey[:keySize])
 	}
