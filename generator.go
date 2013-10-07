@@ -20,6 +20,7 @@ import (
 	"crypto/cipher"
 	"crypto/rand"
 	"io"
+	"io/ioutil"
 	"net"
 	"os/user"
 	"time"
@@ -94,21 +95,32 @@ func (gen *Generator) setInitialSeed() {
 	n, _ := io.ReadFull(rand.Reader, buffer)
 	if n > 0 {
 		trace.T("fortuna/seed", trace.PrioInfo,
-			"using %d bytes from crypto/rand for seed data", n)
+			"mixing %d bytes from crypto/rand into the seed", n)
 		gen.Reseed(buffer)
 	}
 
 	// source 2: current time of day
 	now := time.Now()
 	trace.T("fortuna/seed", trace.PrioInfo,
-		"using the current time for seed data")
+		"mixing the current time into the seed")
 	gen.Reseed([]byte(now.String()))
 
-	// source 3: user name and login details
+	// source 3: try different files with timer information, interrupt
+	// counts, etc.
+	for _, fname := range []string{ "/proc/timer_list", "/proc/stat" } {
+		buffer, _ = ioutil.ReadFile(fname)
+		if len(buffer) > 0 {
+			trace.T("fortuna/seed", trace.PrioInfo,
+				"mixing %d bytes from %q into the seed", len(buffer), fname)
+			gen.Reseed(buffer)
+		}
+	}
+
+	// source 4: user name and login details
 	user, _ := user.Current()
 	if user != nil {
 		trace.T("fortuna/seed", trace.PrioInfo,
-			"using information about the current user for seed data")
+			"mixing information about the current user into the seed")
 		gen.Reseed([]byte(user.Uid))
 		gen.Reseed([]byte(user.Gid))
 		gen.Reseed([]byte(user.Username))
@@ -116,11 +128,11 @@ func (gen *Generator) setInitialSeed() {
 		gen.Reseed([]byte(user.HomeDir))
 	}
 
-	// source 4: network interfaces
+	// source 5: network interfaces
 	ifaces, _ := net.Interfaces()
 	if ifaces != nil {
 		trace.T("fortuna/seed", trace.PrioInfo,
-			"using network interface information for seed data")
+			"mixing network interface information into the seed")
 		for _, iface := range ifaces {
 			gen.ReseedInt64(int64(iface.MTU))
 			gen.Reseed([]byte(iface.Name))

@@ -95,7 +95,7 @@ func (acc *Accumulator) updateSeedFile() error {
 			return ErrCorruptedSeed
 		}
 		trace.T("fortuna/seed", trace.PrioInfo,
-			"using %q for seed data", acc.seedFile.Name())
+			"mixing %q into the seed", acc.seedFile.Name())
 		acc.gen.Reseed(seed)
 	} else if n != 0 {
 		trace.T("fortuna/seed", trace.PrioError,
