@@ -59,6 +59,8 @@ type Accumulator struct {
 
 	sourceMutex sync.Mutex
 	nextSource  uint8
+	stopSources chan bool
+	sources     sync.WaitGroup
 }
 
 // NewRNG allocates a new instance of the Fortuna random number
@@ -102,6 +104,7 @@ func NewAccumulator(newCipher NewCipher, seedFileName string) (*Accumulator, err
 	for i := 0; i < len(acc.pool); i++ {
 		acc.pool[i] = sha256d.New()
 	}
+	acc.stopSources = make(chan bool)
 
 	if seedFileName != "" {
 		seedFile, err := os.OpenFile(seedFileName,
@@ -142,6 +145,26 @@ func NewAccumulator(newCipher NewCipher, seedFileName string) (*Accumulator, err
 	}
 
 	return acc, nil
+}
+
+// tearDownPools is called during shutdown of the Accumulator.  The
+// function frees all entropy pools and transfers the remaining
+// entropy into the underlying generator so that it can go into the
+// seed file.
+func (acc *Accumulator) tearDownPools() {
+	data := make([]byte, 0, numPools*sha256d.Size)
+
+	acc.poolMutex.Lock()
+	for i := 0; i < numPools; i++ {
+		data = acc.pool[i].Sum(data)
+		acc.pool[i] = nil
+	}
+	acc.poolZeroSize = 0 // prevent accidential last-minute reseeding
+	acc.poolMutex.Unlock()
+
+	acc.genMutex.Lock()
+	acc.gen.Reseed(data)
+	acc.genMutex.Unlock()
 }
 
 func (acc *Accumulator) tryReseeding() []byte {
@@ -207,6 +230,11 @@ func (acc *Accumulator) Read(p []byte) (n int, err error) {
 // seed file is correctly updated.  After Close has been called the
 // Accumulator must not be used any more.
 func (acc *Accumulator) Close() error {
+	close(acc.stopSources)
+	acc.sources.Wait()
+
+	acc.tearDownPools()
+
 	var err error
 	if acc.seedFile != nil {
 		acc.stopAutoSave <- true

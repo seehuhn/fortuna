@@ -72,33 +72,40 @@ func (acc *Accumulator) allocateSource() uint8 {
 // data is hashed internally and the hash is submitted to the entropy
 // pools instead of the data itself.
 //
-// The returned channel must be closed after it is no longer needed to
-// avoid memory leaks.
+// The channel can be closed by the caller to indicate that no more
+// entropy will be sent via this channel.
 func (acc *Accumulator) NewEntropyDataSink() chan<- []byte {
 	source := acc.allocateSource()
 
 	c := make(chan []byte, channelBufferSize)
 
+	acc.sources.Add(1)
 	go func() {
+		defer acc.sources.Done()
 		seq := uint(0)
 
+	loop:
 		for {
-			data, ok := <-c
-			if !ok {
-				break
-			}
+			select {
+			case data, ok := <-c:
+				if !ok {
+					break loop
+				}
 
-			if len(data) > 32 {
-				hash := sha256.New()
-				hash.Write(data)
-				data = hash.Sum(nil)
-			}
+				if len(data) > 32 {
+					hash := sha256.New()
+					hash.Write(data)
+					data = hash.Sum(nil)
+				}
 
-			trace.T("fortuna/entropy", trace.PrioDebug,
-				"adding %d bytes from source %d to pool %d",
-				len(data), source, seq%numPools)
-			acc.addRandomEvent(source, seq, data)
-			seq += 1
+				trace.T("fortuna/entropy", trace.PrioDebug,
+					"adding %d bytes from source %d to pool %d",
+					len(data), source, seq%numPools)
+				acc.addRandomEvent(source, seq, data)
+				seq += 1
+			case <-acc.stopSources:
+				break loop
+			}
 		}
 	}()
 
@@ -113,32 +120,39 @@ func (acc *Accumulator) NewEntropyDataSink() chan<- []byte {
 // to an attacker.  Typical sources of randomness include the arrival
 // times of network packets or the times of key-presses by the user.
 //
-// The returned channel must be closed after it is no longer needed to
-// avoid memory leaks.
+// The channel can be closed by the caller to indicate that no more
+// entropy will be sent via this channel.
 func (acc *Accumulator) NewEntropyTimeStampSink() chan<- time.Time {
 	source := acc.allocateSource()
 
 	c := make(chan time.Time, channelBufferSize)
 
+	acc.sources.Add(1)
 	go func() {
+		defer acc.sources.Done()
 		seq := uint(0)
 		lastRequest := time.Now()
 
+	loop:
 		for {
-			now, ok := <-c
-			if !ok {
-				break
+			select {
+			case now, ok := <-c:
+				if !ok {
+					break loop
+				}
+
+				dt := now.Sub(lastRequest)
+				lastRequest = now
+				data := dt.String()
+
+				trace.T("fortuna/entropy", trace.PrioDebug,
+					"adding time stamp data %q from source %d to pool %d",
+					data, source, seq%numPools)
+				acc.addRandomEvent(source, seq, []byte(data))
+				seq += 1
+			case <-acc.stopSources:
+				break loop
 			}
-
-			dt := now.Sub(lastRequest)
-			lastRequest = now
-			data := dt.String()
-
-			trace.T("fortuna/entropy", trace.PrioDebug,
-				"adding time stamp data %q from source %d to pool %d",
-				data, source, seq%numPools)
-			acc.addRandomEvent(source, seq, []byte(data))
-			seq += 1
 		}
 	}()
 

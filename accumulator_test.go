@@ -96,7 +96,10 @@ func TestClose(t *testing.T) {
 	seedFileName := filepath.Join(tempDir, "seed")
 
 	for _, name := range []string{"", seedFileName} {
-		acc, _ := NewRNG(name)
+		acc, err := NewRNG(name)
+		if err != nil {
+			t.Error(err)
+		}
 		acc.RandomData(1)
 		acc.Close()
 		caughtAccessAfterClose := func() (hasPaniced bool) {
@@ -112,6 +115,29 @@ func TestClose(t *testing.T) {
 			t.Error("failed to detect RNG access after close")
 		}
 	}
+}
+
+func TestReseedingDuringClose(t *testing.T) {
+	tempDir, err := ioutil.TempDir("", "")
+	if err != nil {
+		t.Fatalf("TempDir: %v", err)
+	}
+	defer os.RemoveAll(tempDir)
+	seedFileName := filepath.Join(tempDir, "seed")
+
+	acc, err := NewRNG(seedFileName)
+	if err != nil {
+		t.Error(err)
+	}
+
+	buf := make([]byte, 32)
+	sink := acc.NewEntropyDataSink()
+	for i := 0; i < numPools*32/minPoolSize; i++ {
+		sink <- buf
+	}
+	close(sink)
+
+	acc.Close()
 }
 
 func accumulatorRead(b *testing.B, n int) {

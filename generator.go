@@ -107,7 +107,7 @@ func (gen *Generator) setInitialSeed() {
 
 	// source 3: try different files with timer information, interrupt
 	// counts, etc.
-	for _, fname := range []string{ "/proc/timer_list", "/proc/stat" } {
+	for _, fname := range []string{"/proc/timer_list", "/proc/stat"} {
 		buffer, _ = ioutil.ReadFile(fname)
 		if len(buffer) > 0 {
 			trace.T("fortuna/seed", trace.PrioInfo,
