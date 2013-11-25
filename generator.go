@@ -241,7 +241,7 @@ func (gen *Generator) PseudoRandomData(n uint) []byte {
 		gen.setKey(newKey[:keySize])
 	}
 
-	trace.T("fortuna/generator", trace.PrioDebug,
+	trace.T("fortuna/generator", trace.PrioVerbose,
 		"generated %d pseudo-random bytes", n)
 	return res[:n]
 }

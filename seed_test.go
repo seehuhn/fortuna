@@ -18,23 +18,13 @@ package fortuna
 
 import (
 	"bytes"
-	"fmt"
 	"io/ioutil"
 	"os"
 	"path/filepath"
 	"testing"
-	"time"
-
-	"github.com/seehuhn/trace"
 )
 
-func printTrace(t time.Time, path string, prio trace.Priority, msg string) {
-	fmt.Printf("%s:%s: %s\n", t.Format("15:04:05.000"), path, msg)
-}
-
 func TestSeedfile(t *testing.T) {
-	handle := trace.Register(printTrace, "", trace.PrioDebug)
-
 	tempDir, err := ioutil.TempDir("", "")
 	if err != nil {
 		t.Fatalf("TempDir: %v", err)
@@ -103,6 +93,4 @@ func TestSeedfile(t *testing.T) {
 	if rng != nil {
 		rng.Close()
 	}
-
-	handle.Unregister()
 }
