@@ -4,12 +4,6 @@ aims are to make the user interface as intuitive as possible and to
 reduce the probablity of accidentially using the package in an unsafe
 way.  This file lists a possible directions for future work.
 
-- Following Ferguson and Schneier's description of the algorithm, on
-  shutdown all entropy pools are simply discarded.  It seems like a
-  good idea to fold the into the generator state instead before
-  writing the final seed file.  Is this really a good idea?  Is this
-  worth deviating from the official algorithm for?
-
 - Currently, the allocated source numbers for entropy sources wrap
   around modulo 256.  This may allow an attacker to route all entropy
   into the same source, by somehow allocating 255 fake-sources between
@@ -20,3 +14,7 @@ way.  This file lists a possible directions for future work.
   particular, self-tests during operation.
 
     [1] http://csrc.nist.gov/publications/nistpubs/800-90A/SP800-90A.pdf
+
+- Currently, the seed file is auto-saved every 10 minutes.  Should
+  autosaving stop during periods where no random numbers are
+  requested?
