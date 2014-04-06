@@ -103,7 +103,7 @@ func (gen *Generator) setInitialSeed() {
 	now := time.Now()
 	trace.T("fortuna/seed", trace.PrioInfo,
 		"mixing the current time into the seed")
-	gen.Reseed([]byte(now.String()))
+	gen.Reseed(int64ToBytes(now.UnixNano()))
 
 	// source 3: try different files with timer information, interrupt
 	// counts, etc.

@@ -143,12 +143,11 @@ func (acc *Accumulator) NewEntropyTimeStampSink() chan<- time.Time {
 
 				dt := now.Sub(lastRequest)
 				lastRequest = now
-				data := dt.String()
 
 				trace.T("fortuna/entropy", trace.PrioDebug,
 					"adding time stamp data from source %d to pool %d",
 					source, seq%numPools)
-				acc.addRandomEvent(source, seq, []byte(data))
+				acc.addRandomEvent(source, seq, int64ToBytes(int64(dt)))
 				seq += 1
 			case <-acc.stopSources:
 				break loop
