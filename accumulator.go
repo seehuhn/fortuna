@@ -176,7 +176,7 @@ func (acc *Accumulator) tryReseeding() []byte {
 	if acc.poolZeroSize >= minPoolSize && now.After(acc.nextReseed) {
 		acc.nextReseed = now.Add(minReseedInterval)
 		acc.poolZeroSize = 0
-		acc.reseedCount += 1
+		acc.reseedCount++
 
 		seed := make([]byte, 0, numPools*sha256d.Size)
 		pools := []string{}

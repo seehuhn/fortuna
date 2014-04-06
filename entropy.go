@@ -55,7 +55,7 @@ func (acc *Accumulator) allocateSource() uint8 {
 	acc.sourceMutex.Lock()
 	defer acc.sourceMutex.Unlock()
 	source := acc.nextSource
-	acc.nextSource += 1
+	acc.nextSource++
 	return source
 }
 
@@ -102,7 +102,7 @@ func (acc *Accumulator) NewEntropyDataSink() chan<- []byte {
 					"adding %d bytes from source %d to pool %d",
 					len(data), source, seq%numPools)
 				acc.addRandomEvent(source, seq, data)
-				seq += 1
+				seq++
 			case <-acc.stopSources:
 				break loop
 			}
@@ -148,7 +148,7 @@ func (acc *Accumulator) NewEntropyTimeStampSink() chan<- time.Time {
 					"adding time stamp data from source %d to pool %d",
 					source, seq%numPools)
 				acc.addRandomEvent(source, seq, int64ToBytes(int64(dt)))
-				seq += 1
+				seq++
 			case <-acc.stopSources:
 				break loop
 			}

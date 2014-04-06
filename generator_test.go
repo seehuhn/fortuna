@@ -125,7 +125,7 @@ func TestPrng(t *testing.T) {
 	for i := 0; i < n; i++ {
 		x := prng.NormFloat64()
 		if x > 0 {
-			pos += 1
+			pos++
 		}
 	}
 
