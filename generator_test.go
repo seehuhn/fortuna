@@ -159,3 +159,6 @@ func generator(b *testing.B, n uint) {
 func BenchmarkGenerator16(b *testing.B) { generator(b, 16) }
 func BenchmarkGenerator32(b *testing.B) { generator(b, 32) }
 func BenchmarkGenerator1k(b *testing.B) { generator(b, 1024) }
+
+// compile-time test: Generator implements the rand.Source interface
+var _ rand.Source = &Generator{}
