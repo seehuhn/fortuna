@@ -119,7 +119,7 @@ random/unpredictable data and should submit this data to the
 Accumulator.  For example, code like the following could be used to
 submit the times between requests in a web-server::
 
-    sink := rng.NewTimeStampEntropySink()
+    sink := rng.NewEntropyTimeStampSink()
     defer close(sink)
     http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
 	sink <- time.Now()
