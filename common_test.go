@@ -26,7 +26,7 @@ import (
 func TestInt64ToBytes(t *testing.T) {
 	testInts := []int64{math.MinInt64, math.MaxInt64, -1, 0, 1}
 	for i := -100; i <= 100; i++ {
-		testInts = append(testInts, int64(10000000000*i+100))
+		testInts = append(testInts, 10000000000*int64(i)+100)
 	}
 	for _, x := range testInts {
 		buf := int64ToBytes(x)
