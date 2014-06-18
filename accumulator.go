@@ -251,3 +251,25 @@ func (acc *Accumulator) Close() error {
 
 	return err
 }
+
+// Int63 returns a positive random integer, uniformly distributed on
+// the range 0, 1, ..., 2^63-1.  This function is part of the
+// rand.Source interface.
+func (acc *Accumulator) Int63() int64 {
+	bytes := acc.RandomData(8)
+	bytes[0] &= 0x7f
+	return bytesToInt64(bytes)
+}
+
+// Seed uses the given seed value to set a new generator state.  In
+// contrast to the Reseed() method, the Seed() method discards all
+// previous state, thus allowing to generate reproducible output.
+// This function is part of the rand.Source interface.
+//
+// Use of this method should be avoided in cryptographic applications,
+// since reproducible output will lead to security vulnerabilities.
+func (acc *Accumulator) Seed(seed int64) {
+	acc.genMutex.Lock()
+	defer acc.genMutex.Unlock()
+	acc.gen.Seed(seed)
+}
