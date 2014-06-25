@@ -42,3 +42,9 @@ func isZero(data []byte) bool {
 	}
 	return true
 }
+
+func wipe(data []byte) {
+	for i := range data {
+		data[i] = 0
+	}
+}

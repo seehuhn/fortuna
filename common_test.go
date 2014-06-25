@@ -60,3 +60,22 @@ func TestBytesToInt64(t *testing.T) {
 		}
 	}
 }
+
+func TestIsZero(t *testing.T) {
+	buf := make([]byte, 100)
+	if !isZero(buf) {
+		t.Error("isZero failed (1)")
+	}
+	buf[99] = 1
+	if isZero(buf) {
+		t.Error("isZero failed (2)")
+	}
+}
+
+func TestWipe(t *testing.T) {
+	buf := []byte{1, 2, 3, 4, 5, 6, 7}
+	wipe(buf)
+	if !isZero(buf) {
+		t.Error("wipe failed")
+	}
+}

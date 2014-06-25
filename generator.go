@@ -17,12 +17,15 @@
 package fortuna
 
 import (
+	"bytes"
 	"crypto/cipher"
 	"crypto/rand"
+	"fmt"
 	"io"
 	"io/ioutil"
 	"net"
 	"os/user"
+	"strings"
 	"time"
 
 	"github.com/seehuhn/sha256d"
@@ -90,56 +93,70 @@ func (gen *Generator) setKey(key []byte) {
 // bytes from the random number generator in the crypto/rand package
 // are used.
 func (gen *Generator) setInitialSeed() {
-	// source 1: system random number generator
-	buffer := make([]byte, keySize)
-	n, _ := io.ReadFull(rand.Reader, buffer)
-	if n > 0 {
-		trace.T("fortuna/seed", trace.PrioInfo,
-			"mixing %d bytes from crypto/rand into the seed", n)
-		gen.Reseed(buffer)
+	seedData := &bytes.Buffer{}
+	sources := []string{}
+	isGood := false
+
+	// source 1: system random number generator (difficult to predict
+	// for an attacker)
+	m, _ := io.CopyN(seedData, rand.Reader, keySize)
+	if m > 0 {
+		sources = append(sources, fmt.Sprintf("crypto/rand (%d bytes)", m))
+		isGood = isGood || (m >= keySize)
 	}
 
-	// source 2: current time of day
-	now := time.Now()
-	trace.T("fortuna/seed", trace.PrioInfo,
-		"mixing the current time into the seed")
-	gen.Reseed(int64ToBytes(now.UnixNano()))
-
-	// source 3: try different files with timer information, interrupt
-	// counts, etc.
+	// source 2: try different files with timer information, interrupt
+	// counts, etc. (difficult to predict for an attacker)
 	for _, fname := range []string{"/proc/timer_list", "/proc/stat"} {
-		buffer, _ = ioutil.ReadFile(fname)
-		if len(buffer) > 0 {
-			trace.T("fortuna/seed", trace.PrioInfo,
-				"mixing %d bytes from %q into the seed", len(buffer), fname)
-			gen.Reseed(buffer)
+		buffer, _ := ioutil.ReadFile(fname)
+		n, _ := seedData.Write(buffer)
+		wipe(buffer)
+		if n > 0 {
+			sources = append(sources, fmt.Sprintf("%s (%d bytes)", fname, n))
+			isGood = isGood || (n >= 1024)
 		}
 	}
 
-	// source 4: user name and login details
-	user, _ := user.Current()
-	if user != nil {
-		trace.T("fortuna/seed", trace.PrioInfo,
-			"mixing information about the current user into the seed")
-		gen.Reseed([]byte(user.Uid))
-		gen.Reseed([]byte(user.Gid))
-		gen.Reseed([]byte(user.Username))
-		gen.Reseed([]byte(user.Name))
-		gen.Reseed([]byte(user.HomeDir))
+	if !isGood {
+		panic("failed to get initial randomness for the seed")
 	}
 
-	// source 5: network interfaces
+	// source 3: current time of day (different between different runs
+	// of the program)
+	now := time.Now()
+	n, _ := seedData.Write(int64ToBytes(now.UnixNano()))
+	if n == 8 {
+		sources = append(sources, "current time")
+	}
+
+	// source 4: network interfaces (different between hosts)
 	ifaces, _ := net.Interfaces()
 	if ifaces != nil {
-		trace.T("fortuna/seed", trace.PrioInfo,
-			"mixing network interface information into the seed")
 		for _, iface := range ifaces {
-			gen.ReseedInt64(int64(iface.MTU))
-			gen.Reseed([]byte(iface.Name))
-			gen.Reseed(iface.HardwareAddr)
-			gen.ReseedInt64(int64(iface.Flags))
+			seedData.Write(int64ToBytes(int64(iface.MTU)))
+			seedData.Write([]byte(iface.Name))
+			seedData.Write(iface.HardwareAddr)
+			seedData.Write(int64ToBytes(int64(iface.Flags)))
 		}
+		sources = append(sources, "network interfaces")
 	}
+
+	// source 5: user account details (maybe different between hosts)
+	user, _ := user.Current()
+	if user != nil {
+		seedData.Write([]byte(user.Uid))
+		seedData.Write([]byte(user.Gid))
+		seedData.Write([]byte(user.Username))
+		seedData.Write([]byte(user.Name))
+		seedData.Write([]byte(user.HomeDir))
+		sources = append(sources, "account details")
+	}
+
+	trace.T("fortuna/seed", trace.PrioInfo,
+		"initial seed based on "+strings.Join(sources, ", "))
+	buf := seedData.Bytes()
+	gen.Reseed(buf)
+	wipe(buf)
 }
 
 // NewGenerator creates a new instance of the Fortuna pseudo random
