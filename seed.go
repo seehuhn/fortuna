@@ -79,9 +79,9 @@ func (acc *Accumulator) updateSeedFile() error {
 		return err
 	}
 
-	acc.genMutex.Lock()
 	// To prevent attacks we keep the PRNG locked until the new seed
 	// file is safely written to disk.
+	acc.genMutex.Lock()
 	defer acc.genMutex.Unlock()
 
 	n := fi.Size()
