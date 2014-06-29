@@ -22,10 +22,11 @@ func flock(file *os.File) error {
 	return nil
 }
 
-// Funlock always returns nil on this system.
+// Funlock is a dummy function which always returns nil on this
+// system.
 //
-// On systems which support file lockgin, Funlock() can be used to
-// release a file lock which was previously acquired using Flock()
+// On systems which support file locking, Funlock() can be used to
+// release a file lock which was previously acquired using Flock().
 func funlock(file *os.File) error {
 	return nil
 }
