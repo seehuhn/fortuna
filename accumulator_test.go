@@ -172,3 +172,21 @@ func cryptoRandRead(b *testing.B, n int) {
 func BenchmarkCryptoRandRead16(b *testing.B) { cryptoRandRead(b, 16) }
 func BenchmarkCryptoRandRead32(b *testing.B) { cryptoRandRead(b, 32) }
 func BenchmarkCryptoRandRead1k(b *testing.B) { cryptoRandRead(b, 1024) }
+
+func TestRandInt63(t *testing.T) {
+	acc, _ := NewRNG("")
+	r := acc.Int63()
+	if r < 0 {
+		t.Error("Invalid random output")
+	}
+}
+
+func TestRandSeed(t *testing.T) {
+	acc, _ := NewRNG("")
+	defer func() {
+		if r := recover(); r == nil {
+			t.Error("Failed to panic")
+		}
+	}()
+	acc.Seed(0)
+}
