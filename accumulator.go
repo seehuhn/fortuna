@@ -269,7 +269,5 @@ func (acc *Accumulator) Int63() int64 {
 // Use of this method should be avoided in cryptographic applications,
 // since reproducible output will lead to security vulnerabilities.
 func (acc *Accumulator) Seed(seed int64) {
-	acc.genMutex.Lock()
-	defer acc.genMutex.Unlock()
-	acc.gen.Seed(seed)
+	panic("Seeding is not supported")
 }
