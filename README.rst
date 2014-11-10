@@ -66,7 +66,7 @@ The accumulator and the generator are described in separate sections,
 below.  Detailed usage instructions are available via the package's
 online help, either on godoc.org_ or on the command line::
 
-    go doc github.com/seehuhn/fortuna
+    godoc github.com/seehuhn/fortuna
 
 .. _godoc.org: http://godoc.org/github.com/seehuhn/fortuna
 
