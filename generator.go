@@ -177,7 +177,7 @@ func NewGenerator(newCipher NewCipher) *Generator {
 	return gen
 }
 
-// reset reverts the generated to the unseeded state.  A new seed must
+// reset reverts the generator to the unseeded state.  A new seed must
 // be set using the .Reseed() or .Seed() methods before the generator
 // can be used again.  This is mostly useful for unit testing, to
 // start the PRNG from a known state.

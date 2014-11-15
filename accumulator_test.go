@@ -21,6 +21,7 @@ import (
 	"crypto/rand"
 	"io"
 	"io/ioutil"
+	mrand "math/rand"
 	"os"
 	"path/filepath"
 	"testing"
@@ -190,3 +191,6 @@ func TestRandSeed(t *testing.T) {
 	}()
 	acc.Seed(0)
 }
+
+// compile-time test: Accumulator implements the rand.Source interface
+var _ mrand.Source = &Accumulator{}

@@ -261,13 +261,9 @@ func (acc *Accumulator) Int63() int64 {
 	return bytesToInt64(bytes)
 }
 
-// Seed uses the given seed value to set a new generator state.  In
-// contrast to the Reseed() method, the Seed() method discards all
-// previous state, thus allowing to generate reproducible output.
-// This function is part of the rand.Source interface.
-//
-// Use of this method should be avoided in cryptographic applications,
-// since reproducible output will lead to security vulnerabilities.
+// Seed is part of the rand.Source interface.  This method is only
+// present so that Accumulator objects can be used with the functions
+// from the math/rand package.  Do not call this method!
 func (acc *Accumulator) Seed(seed int64) {
-	panic("Seeding is not supported")
+	panic("Seeding a cryptographic RNG is not safe.  Don't do this!")
 }
