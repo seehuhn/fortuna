@@ -19,8 +19,6 @@ package fortuna
 import (
 	"crypto/sha256"
 	"time"
-
-	"github.com/seehuhn/trace"
 )
 
 const channelBufferSize = 4
@@ -98,9 +96,6 @@ func (acc *Accumulator) NewEntropyDataSink() chan<- []byte {
 					data = hash.Sum(nil)
 				}
 
-				trace.T("fortuna/entropy", trace.PrioDebug,
-					"adding %d bytes from source %d to pool %d",
-					len(data), source, seq%numPools)
 				acc.addRandomEvent(source, seq, data)
 				seq++
 			case <-acc.stopSources:
@@ -144,9 +139,6 @@ func (acc *Accumulator) NewEntropyTimeStampSink() chan<- time.Time {
 				dt := now.Sub(lastRequest)
 				lastRequest = now
 
-				trace.T("fortuna/entropy", trace.PrioDebug,
-					"adding time stamp data from source %d to pool %d",
-					source, seq%numPools)
 				acc.addRandomEvent(source, seq, int64ToBytes(int64(dt)))
 				seq++
 			case <-acc.stopSources:

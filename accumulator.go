@@ -21,12 +21,10 @@ import (
 	"hash"
 	"os"
 	"strconv"
-	"strings"
 	"sync"
 	"time"
 
 	"github.com/seehuhn/sha256d"
-	"github.com/seehuhn/trace"
 )
 
 const (
@@ -189,8 +187,6 @@ func (acc *Accumulator) tryReseeding() []byte {
 			acc.pool[i].Reset()
 			pools = append(pools, strconv.Itoa(int(i)))
 		}
-		trace.T("fortuna/seed", trace.PrioInfo,
-			"reseeding from pools %s", strings.Join(pools, " "))
 		return seed
 	}
 	return nil

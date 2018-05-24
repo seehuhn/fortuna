@@ -20,8 +20,6 @@ import (
 	"errors"
 	"io"
 	"os"
-
-	"github.com/seehuhn/trace"
 )
 
 const (
@@ -52,8 +50,6 @@ func doWriteSeed(f *os.File, seed []byte) error {
 		return err
 	}
 
-	trace.T("fortuna/seed", trace.PrioInfo,
-		"writing new seed data to %q", f.Name())
 	return nil
 }
 
@@ -68,9 +64,6 @@ func (acc *Accumulator) updateSeedFile() error {
 	if err != nil {
 		return err
 	} else if fi.Mode()&os.FileMode(0077) != 0 {
-		trace.T("fortuna/seed", trace.PrioError,
-			"seed file %q has insecure permissions, aborted",
-			acc.seedFile.Name())
 		return ErrInsecureSeed
 	}
 
@@ -89,18 +82,10 @@ func (acc *Accumulator) updateSeedFile() error {
 		seed := make([]byte, seedFileSize)
 		_, err := io.ReadFull(acc.seedFile, seed)
 		if err != nil || isZero(seed) {
-			trace.T("fortuna/seed", trace.PrioError,
-				"seed file %q is corrupted, not used: %s",
-				acc.seedFile.Name(), err)
 			return ErrCorruptedSeed
 		}
-		trace.T("fortuna/seed", trace.PrioInfo,
-			"mixing %q into the seed", acc.seedFile.Name())
 		acc.gen.Reseed(seed)
 	} else if n != 0 {
-		trace.T("fortuna/seed", trace.PrioError,
-			"seed file %q has invalid length %d, aborted",
-			acc.seedFile.Name(), n)
 		return ErrCorruptedSeed
 	}
 

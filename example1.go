@@ -22,23 +22,17 @@ import (
 	"crypto/rand"
 	"fmt"
 	"io"
+	"log"
 	"net/http"
 	"strconv"
 	"time"
 
 	"github.com/seehuhn/fortuna"
-	"github.com/seehuhn/trace"
 )
 
 const seedFileName = "seed.dat"
 
-func printTrace(t time.Time, path string, prio trace.Priority, msg string) {
-	fmt.Printf("%s:%s: %s\n", t.Format("15:04:05.000"), path, msg)
-}
-
 func main() {
-	trace.Register(printTrace, "", trace.PrioDebug)
-
 	rng, err := fortuna.NewRNG(seedFileName)
 	if err != nil {
 		panic("cannot initialise the RNG: " + err.Error())
@@ -68,15 +62,12 @@ func main() {
 		w.Header().Set("Content-Length", fmt.Sprintf("%d", size))
 
 		io.CopyN(w, rng, size)
-		trace.T("main", trace.PrioInfo,
-			"sent %d random bytes for %q", size, r.RequestURI)
 	})
 
 	listenAddr := ":8080"
-	trace.T("main", trace.PrioInfo,
-		"listening on http://localhost%s/", listenAddr)
+	log.Printf("listening on http://localhost%s/", listenAddr)
 	err = http.ListenAndServe(listenAddr, nil)
 	if err != nil {
-		trace.T("main", trace.PrioCritical, "%s", err.Error())
+		log.Fatal(err)
 	}
 }

@@ -25,11 +25,9 @@ import (
 	"io/ioutil"
 	"net"
 	"os/user"
-	"strings"
 	"time"
 
 	"github.com/seehuhn/sha256d"
-	"github.com/seehuhn/trace"
 )
 
 const (
@@ -152,8 +150,6 @@ func (gen *Generator) setInitialSeed() {
 		sources = append(sources, "account details")
 	}
 
-	trace.T("fortuna/seed", trace.PrioInfo,
-		"initial seed based on "+strings.Join(sources, ", "))
 	buf := seedData.Bytes()
 	gen.Reseed(buf)
 	wipe(buf)
@@ -200,7 +196,6 @@ func (gen *Generator) Reseed(seed []byte) {
 	hash.Write(seed)
 	gen.setKey(hash.Sum(nil))
 	gen.inc()
-	trace.T("fortuna/generator", trace.PrioVerbose, "seed updated")
 }
 
 // ReseedInt64 uses the current generator state and the given seed
@@ -258,8 +253,6 @@ func (gen *Generator) PseudoRandomData(n uint) []byte {
 		gen.setKey(newKey[:keySize])
 	}
 
-	trace.T("fortuna/generator", trace.PrioVerbose,
-		"generated %d pseudo-random bytes", n)
 	return res[:n]
 }
 
