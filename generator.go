@@ -62,9 +62,10 @@ type Generator struct {
 
 func (gen *Generator) inc() {
 	// The counter is stored least-significant byte first.
-	for i := 0; i < len(gen.counter); i++ {
-		gen.counter[i]++
-		if gen.counter[i] != 0 {
+	ctr := gen.counter
+	for i := 0; i < len(ctr); i++ {
+		ctr[i]++
+		if ctr[i] != 0 {
 			break
 		}
 	}
@@ -218,8 +219,7 @@ func (gen *Generator) generateBlocks(data []byte, k uint) []byte {
 		panic("Fortuna generator not yet seeded")
 	}
 
-	counterSize := uint(len(gen.counter))
-	buf := make([]byte, counterSize)
+	buf := make([]byte, len(gen.counter))
 	for i := uint(0); i < k; i++ {
 		gen.cipher.Encrypt(buf, gen.counter)
 		data = append(data, buf...)

@@ -135,6 +135,15 @@ func TestPrng(t *testing.T) {
 	}
 }
 
+func BenchmarkIncCounter(b *testing.B) {
+	rng := NewGenerator(aes.NewCipher)
+	b.ResetTimer()
+
+	for i := 0; i < b.N; i++ {
+		rng.inc()
+	}
+}
+
 func BenchmarkReseed(b *testing.B) {
 	rng := NewGenerator(aes.NewCipher)
 	seed := []byte{1, 2, 3, 4}

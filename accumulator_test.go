@@ -184,6 +184,34 @@ func TestRandInt63(t *testing.T) {
 	}
 }
 
+func BenchmarkFortunaInt63(b *testing.B) {
+	acc, _ := NewRNG("")
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		_ = acc.Int63()
+	}
+}
+
+func BenchmarkFortunaUint64(b *testing.B) {
+	acc, _ := NewRNG("")
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		_ = acc.Uint64()
+	}
+}
+
+func BenchmarkMathRandInt63(b *testing.B) {
+	for i := 0; i < b.N; i++ {
+		_ = mrand.Int63()
+	}
+}
+
+func BenchmarkMathRandUint64(b *testing.B) {
+	for i := 0; i < b.N; i++ {
+		_ = mrand.Uint64()
+	}
+}
+
 func TestRandSeed(t *testing.T) {
 	acc, _ := NewRNG("")
 	defer func() {
