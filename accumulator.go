@@ -261,6 +261,14 @@ func (acc *Accumulator) Int63() int64 {
 	return bytesToInt64(bytes)
 }
 
+// Uint64 returns a positive random integer, uniformly distributed on
+// the range 0, 1, ..., 2^64-1.  This function is part of the
+// rand.Source64 interface.
+func (acc *Accumulator) Uint64() uint64 {
+	bytes := acc.RandomData(8)
+	return bytesToUint64(bytes)
+}
+
 // Seed is part of the rand.Source interface.  This method is only
 // present so that Accumulator objects can be used with the functions
 // from the math/rand package.  Do not call this method!

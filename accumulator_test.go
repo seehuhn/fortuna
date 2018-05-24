@@ -176,9 +176,11 @@ func BenchmarkCryptoRandRead1k(b *testing.B) { cryptoRandRead(b, 1024) }
 
 func TestRandInt63(t *testing.T) {
 	acc, _ := NewRNG("")
-	r := acc.Int63()
-	if r < 0 {
-		t.Error("Invalid random output")
+	for i := 0; i < 100; i++ {
+		r := acc.Int63()
+		if r < 0 {
+			t.Error("Invalid random output")
+		}
 	}
 }
 
@@ -194,3 +196,6 @@ func TestRandSeed(t *testing.T) {
 
 // compile-time test: Accumulator implements the rand.Source interface
 var _ mrand.Source = &Accumulator{}
+
+// compile-time test: Accumulator implements the rand.Source64 interface
+var _ mrand.Source64 = &Accumulator{}

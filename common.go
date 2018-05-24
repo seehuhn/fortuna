@@ -16,8 +16,28 @@
 
 package fortuna
 
+func bytesToUint64(bytes []byte) uint64 {
+	var res uint64
+	_ = bytes[7] // avoid range checks in the loop below
+	res = uint64(bytes[0])
+	for _, x := range bytes[1:] {
+		res = res<<8 | uint64(x)
+	}
+	return res
+}
+
+func uint64ToBytes(x uint64) []byte {
+	bytes := make([]byte, 8)
+	for i := 7; i >= 0; i-- {
+		bytes[i] = byte(x & 0xff)
+		x = x >> 8
+	}
+	return bytes
+}
+
 func bytesToInt64(bytes []byte) int64 {
 	var res int64
+	_ = bytes[7] // avoid range checks in the loop below
 	res = int64(bytes[0])
 	for _, x := range bytes[1:] {
 		res = res<<8 | int64(x)

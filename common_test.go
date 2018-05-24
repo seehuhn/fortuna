@@ -23,6 +23,44 @@ import (
 	"testing"
 )
 
+func TestUint64ToBytes(t *testing.T) {
+	testInts := []uint64{0, 1, 2, math.MaxUint64}
+	for i := 0; i < 200; i++ {
+		testInts = append(testInts, 10000000000*uint64(i)+100)
+	}
+	for _, x := range testInts {
+		buf := uint64ToBytes(x)
+
+		if (isZero(buf) && x != 0) || (!isZero(buf) && x == 0) {
+			t.Error("isZero failed for x =", x)
+		}
+
+		y := bytesToUint64(buf)
+		if x != y {
+			t.Errorf("uint64<->bytes failed: %d != %d", x, y)
+		}
+	}
+}
+
+func TestBytesToUint64(t *testing.T) {
+	buf := make([]byte, 8)
+	x := bytesToUint64(buf)
+	if x != 0 {
+		t.Error("bytesToUint64 failed for x=0")
+	}
+
+	gen := NewGenerator(aes.NewCipher)
+	gen.Seed(54321)
+	for i := 0; i < 1000; i++ {
+		buf = gen.PseudoRandomData(8)
+		x := bytesToUint64(buf)
+		buf2 := uint64ToBytes(x)
+		if bytes.Compare(buf, buf2) != 0 {
+			t.Errorf("bytes<->uint64 failed:\n%v != %v", buf, buf2)
+		}
+	}
+}
+
 func TestInt64ToBytes(t *testing.T) {
 	testInts := []int64{math.MinInt64, math.MaxInt64, -1, 0, 1}
 	for i := -100; i <= 100; i++ {
@@ -77,5 +115,21 @@ func TestWipe(t *testing.T) {
 	wipe(buf)
 	if !isZero(buf) {
 		t.Error("wipe failed")
+	}
+}
+
+func BenchmarkBytesToUint64(b *testing.B) {
+	buf := []byte{1, 2, 3, 4, 5, 6, 7, 8}
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		_ = bytesToUint64(buf)
+	}
+}
+
+func BenchmarkBytesToInt64(b *testing.B) {
+	buf := []byte{1, 2, 3, 4, 5, 6, 7, 8}
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		_ = bytesToInt64(buf)
 	}
 }
