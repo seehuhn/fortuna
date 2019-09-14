@@ -20,7 +20,6 @@ import (
 	"bytes"
 	"crypto/cipher"
 	"crypto/rand"
-	"fmt"
 	"io"
 	"io/ioutil"
 	"net"
@@ -93,16 +92,12 @@ func (gen *Generator) setKey(key []byte) {
 // are used.
 func (gen *Generator) setInitialSeed() {
 	seedData := &bytes.Buffer{}
-	sources := []string{}
 	isGood := false
 
 	// source 1: system random number generator (difficult to predict
 	// for an attacker)
 	m, _ := io.CopyN(seedData, rand.Reader, keySize)
-	if m > 0 {
-		sources = append(sources, fmt.Sprintf("crypto/rand (%d bytes)", m))
-		isGood = isGood || (m >= keySize)
-	}
+	isGood = isGood || (m >= keySize)
 
 	// source 2: try different files with timer information, interrupt
 	// counts, etc. (difficult to predict for an attacker)
@@ -110,10 +105,7 @@ func (gen *Generator) setInitialSeed() {
 		buffer, _ := ioutil.ReadFile(fname)
 		n, _ := seedData.Write(buffer)
 		wipe(buffer)
-		if n > 0 {
-			sources = append(sources, fmt.Sprintf("%s (%d bytes)", fname, n))
-			isGood = isGood || (n >= 1024)
-		}
+		isGood = isGood || (n >= 1024)
 	}
 
 	if !isGood {
@@ -123,21 +115,15 @@ func (gen *Generator) setInitialSeed() {
 	// source 3: current time of day (different between different runs
 	// of the program)
 	now := time.Now()
-	n, _ := seedData.Write(int64ToBytes(now.UnixNano()))
-	if n == 8 {
-		sources = append(sources, "current time")
-	}
+	seedData.Write(int64ToBytes(now.UnixNano()))
 
 	// source 4: network interfaces (different between hosts)
 	ifaces, _ := net.Interfaces()
-	if ifaces != nil {
-		for _, iface := range ifaces {
-			seedData.Write(int64ToBytes(int64(iface.MTU)))
-			seedData.Write([]byte(iface.Name))
-			seedData.Write(iface.HardwareAddr)
-			seedData.Write(int64ToBytes(int64(iface.Flags)))
-		}
-		sources = append(sources, "network interfaces")
+	for _, iface := range ifaces {
+		seedData.Write(int64ToBytes(int64(iface.MTU)))
+		seedData.Write([]byte(iface.Name))
+		seedData.Write(iface.HardwareAddr)
+		seedData.Write(int64ToBytes(int64(iface.Flags)))
 	}
 
 	// source 5: user account details (maybe different between hosts)
@@ -148,7 +134,6 @@ func (gen *Generator) setInitialSeed() {
 		seedData.Write([]byte(user.Username))
 		seedData.Write([]byte(user.Name))
 		seedData.Write([]byte(user.HomeDir))
-		sources = append(sources, "account details")
 	}
 
 	buf := seedData.Bytes()

@@ -20,7 +20,6 @@ import (
 	"crypto/aes"
 	"hash"
 	"os"
-	"strconv"
 	"sync"
 	"time"
 
@@ -130,12 +129,13 @@ func NewAccumulator(newCipher NewCipher, seedFileName string) (*Accumulator, err
 		quit := make(chan bool)
 		acc.stopAutoSave = quit
 		go func() {
-			ticker := time.Tick(seedFileUpdateInterval)
+			ticker := time.NewTicker(seedFileUpdateInterval)
+			defer ticker.Stop()
 			for {
 				select {
 				case <-quit:
 					return
-				case <-ticker:
+				case <-ticker.C:
 					acc.writeSeedFile()
 				}
 			}
@@ -177,7 +177,6 @@ func (acc *Accumulator) tryReseeding() []byte {
 		acc.reseedCount++
 
 		seed := make([]byte, 0, numPools*sha256d.Size)
-		pools := []string{}
 		for i := uint(0); i < numPools; i++ {
 			x := 1 << i
 			if acc.reseedCount%x != 0 {
@@ -185,7 +184,6 @@ func (acc *Accumulator) tryReseeding() []byte {
 			}
 			seed = acc.pool[i].Sum(seed)
 			acc.pool[i].Reset()
-			pools = append(pools, strconv.Itoa(int(i)))
 		}
 		return seed
 	}

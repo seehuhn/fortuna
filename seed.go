@@ -26,13 +26,14 @@ const (
 	seedFileSize = 64
 )
 
+// Error codes relating to seed files.
 var (
 	ErrCorruptedSeed = errors.New("seed file corrupted")
 	ErrInsecureSeed  = errors.New("seed file with insecure permissions")
 )
 
 func doWriteSeed(f *os.File, seed []byte) error {
-	_, err := f.Seek(0, os.SEEK_SET)
+	_, err := f.Seek(0, io.SeekStart)
 	if err != nil {
 		return err
 	}
@@ -67,7 +68,7 @@ func (acc *Accumulator) updateSeedFile() error {
 		return ErrInsecureSeed
 	}
 
-	_, err = acc.seedFile.Seek(0, os.SEEK_SET)
+	_, err = acc.seedFile.Seek(0, io.SeekStart)
 	if err != nil {
 		return err
 	}

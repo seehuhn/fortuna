@@ -51,7 +51,7 @@ func TestAccumulator(t *testing.T) {
 		90, 222, 127, 26, 195, 88, 191, 216, 22, 200, 245, 158, 162, 218, 10,
 		72, 243, 193, 132, 171, 27, 179, 99, 54, 208,
 	}
-	if bytes.Compare(out, correct) != 0 {
+	if !bytes.Equal(out, correct) {
 		t.Error("wrong RNG output")
 	}
 
@@ -67,7 +67,7 @@ func TestAccumulator(t *testing.T) {
 		38, 25, 28, 94, 93, 65, 183, 85, 46, 61, 132, 18, 96, 131, 16,
 		138, 241, 1, 22, 192, 249, 66, 242, 153, 112,
 	}
-	if bytes.Compare(out, correct) != 0 {
+	if !bytes.Equal(out, correct) {
 		t.Error("wrong RNG output")
 	}
 
@@ -83,7 +83,7 @@ func TestAccumulator(t *testing.T) {
 		13, 151, 138, 231, 135, 34, 192, 236, 5, 161, 249, 223, 212, 154, 198,
 		14, 222, 197, 232, 75, 199, 134, 56, 58, 212,
 	}
-	if bytes.Compare(out, correct) != 0 {
+	if !bytes.Equal(out, correct) {
 		t.Error("wrong RNG output")
 	}
 }

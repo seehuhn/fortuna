@@ -66,12 +66,18 @@ func TestSeedfile(t *testing.T) {
 	// the following would panic if the seed is not reset
 	rng.RandomData(1)
 	err = rng.Close()
-	if len(before) != seedFileSize || bytes.Compare(before, after) == 0 {
+	if err != nil {
+		t.Error(err)
+	}
+	if len(before) != seedFileSize || bytes.Equal(before, after) {
 		t.Error("seed file not correctly updated")
 	}
 
 	// check that insecure seed files are detected
-	os.Chmod(seedFileName, os.FileMode(0644))
+	err = os.Chmod(seedFileName, os.FileMode(0644))
+	if err != nil {
+		t.Fatal(err)
+	}
 	rng, err = NewRNG(seedFileName)
 	if err != ErrInsecureSeed {
 		t.Error("insecure seed file not detected")
@@ -79,7 +85,10 @@ func TestSeedfile(t *testing.T) {
 	if rng != nil {
 		rng.Close()
 	}
-	os.Chmod(seedFileName, os.FileMode(0600))
+	err = os.Chmod(seedFileName, os.FileMode(0600))
+	if err != nil {
+		t.Fatal(err)
+	}
 
 	// check that seed files of wrong length are detected
 	err = ioutil.WriteFile(seedFileName, []byte("Hello"), os.FileMode(0600))

@@ -55,7 +55,7 @@ func TestBytesToUint64(t *testing.T) {
 		buf = gen.PseudoRandomData(8)
 		x := bytesToUint64(buf)
 		buf2 := uint64ToBytes(x)
-		if bytes.Compare(buf, buf2) != 0 {
+		if !bytes.Equal(buf, buf2) {
 			t.Errorf("bytes<->uint64 failed:\n%v != %v", buf, buf2)
 		}
 	}
@@ -93,7 +93,7 @@ func TestBytesToInt64(t *testing.T) {
 		buf = gen.PseudoRandomData(8)
 		x := bytesToInt64(buf)
 		buf2 := int64ToBytes(x)
-		if bytes.Compare(buf, buf2) != 0 {
+		if !bytes.Equal(buf, buf2) {
 			t.Errorf("bytes<->int64 failed:\n%v != %v", buf, buf2)
 		}
 	}

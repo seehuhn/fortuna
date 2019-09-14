@@ -109,7 +109,7 @@ func TestSeed(t *testing.T) {
 		x := rng.PseudoRandomData(1000)
 		rng.Seed(seed)
 		y := rng.PseudoRandomData(1000)
-		if bytes.Compare(x, y) != 0 {
+		if !bytes.Equal(x, y) {
 			t.Error(".Seed() doesn't determine generator state")
 		}
 	}
