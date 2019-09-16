@@ -22,7 +22,10 @@ func TestFlock(t *testing.T) {
 		t.Error(err)
 	}
 	defer file1.Close()
-	file1.Write([]byte("test"))
+	_, err = file1.Write([]byte("test"))
+	if err != nil {
+		t.Error(err)
+	}
 
 	file2, err := os.Open(testFileName)
 	if err != nil {
@@ -69,7 +72,10 @@ func TestFlockClose(t *testing.T) {
 	if err != nil {
 		t.Error(err)
 	}
-	file1.Write([]byte("test"))
+	_, err = file1.Write([]byte("test"))
+	if err != nil {
+		t.Error(err)
+	}
 
 	file2, err := os.Open(testFileName)
 	if err != nil {
@@ -78,7 +84,10 @@ func TestFlockClose(t *testing.T) {
 	defer file2.Close()
 
 	// Verify that the file lock is release on close.
-	flock(file1)
+	err = flock(file1)
+	if err != nil {
+		t.Error(err)
+	}
 	file1.Close()
 	err = flock(file2)
 	if err != nil {

@@ -49,7 +49,7 @@ func TestOutput(t *testing.T) {
 		251, 61, 65, 141, 100, 59, 228, 23, 215, 58, 107, 248, 248, 103, 57,
 		127, 31, 241, 91, 230, 33, 0, 164, 77, 46,
 	}
-	if bytes.Compare(out, correct) != 0 {
+	if !bytes.Equal(out, correct) {
 		t.Error("wrong RNG output")
 	}
 
@@ -63,7 +63,7 @@ func TestOutput(t *testing.T) {
 		198, 227, 18, 204, 211, 42, 184, 92, 42, 171, 222, 198, 117, 162, 134,
 		116, 109, 77, 195, 187, 139, 37, 78, 224, 63,
 	}
-	if bytes.Compare(out, correct) != 0 {
+	if !bytes.Equal(out, correct) {
 		t.Error("wrong RNG output")
 	}
 
@@ -78,7 +78,7 @@ func TestOutput(t *testing.T) {
 		162, 69, 68, 207, 251, 101, 10, 29, 33, 133, 87, 189, 36, 229, 56,
 		17, 100, 138, 49, 79, 239, 210, 189, 141, 46,
 	}
-	if bytes.Compare(out, correct) != 0 {
+	if !bytes.Equal(out, correct) {
 		t.Error("wrong RNG output")
 	}
 }
