@@ -24,6 +24,7 @@ import (
 	"io/ioutil"
 	"net"
 	"os/user"
+	"path/filepath"
 	"time"
 
 	"github.com/seehuhn/sha256d"
@@ -101,8 +102,12 @@ func (gen *Generator) setInitialSeed() {
 
 	// source 2: try different files with timer information, interrupt
 	// counts, etc. (difficult to predict for an attacker)
-	for _, fname := range []string{"/proc/timer_list", "/proc/stat"} {
-		buffer, _ := ioutil.ReadFile(fname)
+	var fpath string
+	var timerFiles []string = []string{"/proc/timer_list", "/proc/stat"}
+
+	for _, fname := range timerFiles {
+		fpath = filepath.Join(fname, filepath.Clean(fpath))
+		buffer, _ := ioutil.ReadFile(fpath)
 		n, _ := seedData.Write(buffer)
 		wipe(buffer)
 		isGood = isGood || (n >= 1024)
