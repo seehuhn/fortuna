@@ -18,3 +18,6 @@ way.  This file lists a possible directions for future work.
 - Currently, the seed file is auto-saved every 10 minutes.  Should
   autosaving stop during periods where no random numbers are
   requested?
+
+- The library seems to use panics for errors. Let's check if this is the
+  correct thing
