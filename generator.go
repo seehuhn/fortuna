@@ -102,12 +102,10 @@ func (gen *Generator) setInitialSeed() {
 
 	// source 2: try different files with timer information, interrupt
 	// counts, etc. (difficult to predict for an attacker)
-	var fpath string
 	var timerFiles []string = []string{"/proc/timer_list", "/proc/stat"}
 
 	for _, fname := range timerFiles {
-		fpath = filepath.Join(fname, filepath.Clean(fpath))
-		buffer, _ := ioutil.ReadFile(fpath)
+		buffer, _ := ioutil.ReadFile(filepath.Clean(fname))
 		n, _ := seedData.Write(buffer)
 		wipe(buffer)
 		isGood = isGood || (n >= 1024)
