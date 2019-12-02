@@ -15,3 +15,6 @@ test:
 gosec:
 	go get -u github.com/securego/gosec/cmd/gosec...
 	gosec ./...
+
+ci-lint:
+	golangci-lint run
