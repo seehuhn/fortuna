@@ -60,7 +60,7 @@ type Generator struct {
 	counter   []byte
 }
 
-func (gen *Generator) inc() {
+func (gen *Generator) incCounter() {
 	// The counter is stored least-significant byte first.
 	ctr := gen.counter
 	for i := 0; i < len(ctr); i++ {
@@ -75,20 +75,22 @@ func (gen *Generator) setKey(key []byte) {
 	if len(key) != keySize {
 		panic("wrong key size")
 	}
+
 	gen.key = key
 	cipher, err := gen.newCipher(gen.key)
 	if err != nil {
 		panic("newCipher() failed, cannot set generator key")
 	}
+
 	gen.cipher = cipher
 }
 
 // setInitialSeed sets the initial seed for the Generator.  An
 // attempt is made to obtain seeds which differ between machines and
-// between reboots.  To achieve this, the following information is
+// between reboots. To achieve this, the following information is
 // incorporated into the seed: the current time of day, account
 // information for the current user, and information about the
-// installed network interfaces.  In addition, if available, random
+// installed network interfaces. In addition, if available, random
 // bytes from the random number generator in the crypto/rand package
 // are used.
 func (gen *Generator) setInitialSeed() {
@@ -108,6 +110,7 @@ func (gen *Generator) setInitialSeed() {
 		buffer, _ := ioutil.ReadFile(filepath.Clean(fname))
 		n, _ := seedData.Write(buffer)
 		wipe(buffer)
+		// TODO: extract to constant
 		isGood = isGood || (n >= 1024)
 	}
 
@@ -145,7 +148,7 @@ func (gen *Generator) setInitialSeed() {
 }
 
 // NewGenerator creates a new instance of the Fortuna pseudo random
-// number generator.  The function newCipher should normally be
+// number generator. The function newCipher should normally be
 // aes.NewCipher from the crypto/aes package, but the Serpent or
 // Twofish ciphers can also be used.
 //
@@ -173,7 +176,7 @@ func (gen *Generator) reset() {
 }
 
 // Reseed uses the current generator state and the given seed value to
-// update the generator state.  Care is taken to make sure that
+// update the generator state. Care is taken to make sure that
 // knowledge of the new state after a reseed does not allow to
 // reconstruct previous output values of the generator.
 //
@@ -192,7 +195,7 @@ func (gen *Generator) Reseed(seed []byte) {
 	}
 
 	gen.setKey(hash.Sum(nil))
-	gen.inc()
+	gen.incCounter()
 }
 
 // ReseedInt64 uses the current generator state and the given seed
@@ -219,7 +222,7 @@ func (gen *Generator) generateBlocks(data []byte, k uint) []byte {
 	for i := uint(0); i < k; i++ {
 		gen.cipher.Encrypt(buf, gen.counter)
 		data = append(data, buf...)
-		gen.inc()
+		gen.incCounter()
 	}
 
 	return data
@@ -242,6 +245,7 @@ func (gen *Generator) PseudoRandomData(n uint) []byte {
 		if count > maxBlocks {
 			count = maxBlocks
 		}
+
 		res = gen.generateBlocks(res, count)
 		numBlocks -= count
 

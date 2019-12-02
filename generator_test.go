@@ -140,7 +140,7 @@ func BenchmarkIncCounter(b *testing.B) {
 	b.ResetTimer()
 
 	for i := 0; i < b.N; i++ {
-		rng.inc()
+		rng.incCounter()
 	}
 }
 

@@ -61,10 +61,10 @@ type Accumulator struct {
 }
 
 // NewRNG allocates a new instance of the Fortuna random number
-// generator.
+// generator, which in the case of this library is called 'Acummulator'.
 //
 // The argument seedFileName gives the name of a file where a small
-// amount of randomness can be stored between runs of the program; the
+// amount of randomness can be stored between runs of the program. The
 // program must be able to both read and write this file.  The
 // contents of the seed file must be kept secret and seed files must
 // not be shared between concurrently running instances of the random
@@ -92,7 +92,7 @@ var (
 // number generator.  The argument 'newCipher' allows to choose a
 // block cipher like Serpent or Twofish instead of the default AES.
 // NewAccumulator(aes.NewCipher, seedFileName) is the same as
-// NewRNG(seedFileName).  See the documentation for NewRNG() for more
+// NewRNG(seedFileName). See the documentation for NewRNG() for more
 // information.
 func NewAccumulator(newCipher NewCipher, seedFileName string) (*Accumulator, error) {
 	acc := &Accumulator{
@@ -121,7 +121,7 @@ func NewAccumulator(newCipher NewCipher, seedFileName string) (*Accumulator, err
 		}
 
 		// The initial seed of the generator depends on the current
-		// time.  This (partially) protects us against old seed files
+		// time. This (partially) protects us against old seed files
 		// being restored from backups, etc.
 		err = acc.updateSeedFile()
 		if err != nil {
@@ -205,9 +205,11 @@ func (acc *Accumulator) RandomData(n uint) []byte {
 	seed := acc.tryReseeding()
 	acc.genMutex.Lock()
 	defer acc.genMutex.Unlock()
+
 	if seed != nil {
 		acc.gen.Reseed(seed)
 	}
+
 	return acc.gen.PseudoRandomData(n)
 }
 
@@ -216,6 +218,7 @@ func (acc *Accumulator) randomDataUnlocked(n uint) []byte {
 	if seed != nil {
 		acc.gen.Reseed(seed)
 	}
+
 	return acc.gen.PseudoRandomData(n)
 }
 
@@ -224,12 +227,15 @@ func (acc *Accumulator) randomDataUnlocked(n uint) []byte {
 // bytes.  The method always reads len(p) bytes and never returns an
 // error.
 func (acc *Accumulator) Read(p []byte) (n int, err error) {
-	copy(p, acc.RandomData(uint(len(p))))
-	return len(p), nil
+	size := len(p)
+	// TODO: this conversation might be tricky
+	copy(p, acc.RandomData(uint(size)))
+
+	return size, nil
 }
 
 // Close must be called before the program exits to ensure that the
-// seed file is correctly updated.  After Close has been called the
+// seed file is correctly updated. After Close has been called the
 // Accumulator must not be used any more.
 func (acc *Accumulator) Close() error {
 	close(acc.stopSources)
@@ -273,7 +279,7 @@ func (acc *Accumulator) Uint64() uint64 {
 
 // Seed is part of the rand.Source interface.  This method is only
 // present so that Accumulator objects can be used with the functions
-// from the math/rand package.  Do not call this method!
+// from the math/rand package. Do not call this method!
 func (acc *Accumulator) Seed(seed int64) {
-	panic("Seeding a cryptographic RNG is not safe.  Don't do this!")
+	panic("Seeding a cryptographic RNG is not safe. Don't do this!")
 }

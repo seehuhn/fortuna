@@ -100,7 +100,7 @@ If a seed file is used, the Accumulator must be closed using the
 ``Close()`` method after use.
 
 Randomness can be extracted from the Accumulator using the
-``RandomData()`` and ``Read()`` methods.  For example, a slice of 16
+``RandomData(n uint)`` and ``Read()`` methods.  For example, a slice of 16
 random bytes can be obtained using the following command::
 
     data := rng.RandomData(16)
