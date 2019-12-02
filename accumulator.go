@@ -98,9 +98,11 @@ func NewAccumulator(newCipher NewCipher, seedFileName string) (*Accumulator, err
 	acc := &Accumulator{
 		gen: NewGenerator(newCipher),
 	}
+
 	for i := 0; i < len(acc.pool); i++ {
 		acc.pool[i] = sha256d.New()
 	}
+
 	acc.stopSources = make(chan bool)
 
 	if seedFileName != "" {
@@ -109,6 +111,7 @@ func NewAccumulator(newCipher NewCipher, seedFileName string) (*Accumulator, err
 		if err != nil {
 			return nil, err
 		}
+
 		acc.seedFile = seedFile
 
 		err = flock(acc.seedFile)
@@ -128,6 +131,7 @@ func NewAccumulator(newCipher NewCipher, seedFileName string) (*Accumulator, err
 
 		quit := make(chan bool)
 		acc.stopAutoSave = quit
+
 		go func() {
 			ticker := time.NewTicker(seedFileUpdateInterval)
 			defer ticker.Stop()
@@ -136,7 +140,11 @@ func NewAccumulator(newCipher NewCipher, seedFileName string) (*Accumulator, err
 				case <-quit:
 					return
 				case <-ticker.C:
-					acc.writeSeedFile()
+					err = acc.writeSeedFile()
+					if err != nil {
+						acc.seedFile.Close()
+						return
+					}
 				}
 			}
 		}()

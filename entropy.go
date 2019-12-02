@@ -41,8 +41,16 @@ func (acc *Accumulator) addRandomEvent(source uint8, seq uint, data []byte) {
 	defer acc.poolMutex.Unlock()
 
 	poolHash := acc.pool[pool]
-	poolHash.Write([]byte{source, byte(len(data))})
-	poolHash.Write(data)
+	_, err := poolHash.Write([]byte{source, byte(len(data))})
+	if err != nil {
+		return
+	}
+
+	_, err = poolHash.Write(data)
+	if err != nil {
+		return
+	}
+
 	if pool == 0 {
 		acc.poolZeroSize += 2 + len(data)
 	}
@@ -92,7 +100,11 @@ func (acc *Accumulator) NewEntropyDataSink() chan<- []byte {
 
 				if len(data) > 32 {
 					hash := sha256.New()
-					hash.Write(data)
+					_, err := hash.Write(data)
+					if err != nil {
+						return
+					}
+
 					data = hash.Sum(nil)
 				}
 

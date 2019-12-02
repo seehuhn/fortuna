@@ -179,10 +179,19 @@ func (gen *Generator) reset() {
 //
 // This is like the ReseedInt64() method, but the seed is given as a
 // byte slice instead of as an int64.
+// TODO: this needs to return a proper error
 func (gen *Generator) Reseed(seed []byte) {
 	hash := sha256d.New()
-	hash.Write(gen.key)
-	hash.Write(seed)
+	_, err := hash.Write(gen.key)
+	if err != nil {
+		return
+	}
+
+	_, err = hash.Write(seed)
+	if err != nil {
+		return
+	}
+
 	gen.setKey(hash.Sum(nil))
 	gen.inc()
 }

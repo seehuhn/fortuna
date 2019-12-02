@@ -150,7 +150,10 @@ func accumulatorRead(b *testing.B, n int) {
 	for i := 0; i < b.N; i++ {
 		// acc.Read is guaranteed to return the full data in one go
 		// and not to return an error.
-		acc.Read(buffer)
+		_, err := acc.Read(buffer)
+		if err != nil {
+			return
+		}
 	}
 }
 
