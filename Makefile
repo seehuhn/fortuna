@@ -18,3 +18,7 @@ gosec:
 
 ci-lint:
 	golangci-lint run
+
+ineffassign:
+	go get -u github.com/gordonklaus/ineffassign/...
+	ineffassign .
