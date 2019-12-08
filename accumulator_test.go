@@ -155,6 +155,14 @@ func (s *fortunaSuite) TestRandSeed(c *C) {
 	acc.Seed(0)
 }
 
+var counter = []struct {
+	n int
+}{
+	{16},
+	{32},
+	{1024},
+}
+
 func accumulatorRead(b *testing.B, n int) {
 	acc, _ := NewRNG("")
 	buffer := make([]byte, n)
@@ -171,9 +179,11 @@ func accumulatorRead(b *testing.B, n int) {
 	}
 }
 
-func BenchmarkAccumulatorRead16(b *testing.B) { accumulatorRead(b, 16) }
-func BenchmarkAccumulatorRead32(b *testing.B) { accumulatorRead(b, 32) }
-func BenchmarkAccumulatorRead1k(b *testing.B) { accumulatorRead(b, 1024) }
+func BenchmarkAccumulatorReadN(b *testing.B) {
+	for _, tt := range counter {
+		accumulatorRead(b, tt.n)
+	}
+}
 
 func cryptoRandRead(b *testing.B, n int) {
 	buffer := make([]byte, n)
@@ -187,9 +197,11 @@ func cryptoRandRead(b *testing.B, n int) {
 	}
 }
 
-func BenchmarkCryptoRandRead16(b *testing.B) { cryptoRandRead(b, 16) }
-func BenchmarkCryptoRandRead32(b *testing.B) { cryptoRandRead(b, 32) }
-func BenchmarkCryptoRandRead1k(b *testing.B) { cryptoRandRead(b, 1024) }
+func BenchmarkCryptoRandRead16(b *testing.B) {
+	for _, tt := range counter {
+		cryptoRandRead(b, tt.n)
+	}
+}
 
 func BenchmarkFortunaInt63(b *testing.B) {
 	acc, _ := NewRNG("")
