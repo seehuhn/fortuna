@@ -23,5 +23,5 @@ ineffassign:
 	go get -u github.com/gordonklaus/ineffassign/...
 	ineffassign .
 
-bech:
+bench:
 	 go test -run=XXX -bench=.

@@ -163,20 +163,27 @@ var counter = []struct {
 	{1024},
 }
 
+var result int
+
 func accumulatorRead(b *testing.B, n int) {
 	acc, _ := NewRNG("")
 	buffer := make([]byte, n)
 
 	b.SetBytes(int64(n))
 	b.ResetTimer()
+
+	var r int
+	var err error
 	for i := 0; i < b.N; i++ {
 		// acc.Read is guaranteed to return the full data in one go
 		// and not to return an error.
-		_, err := acc.Read(buffer)
+		r, err = acc.Read(buffer)
 		if err != nil {
 			return
 		}
 	}
+
+	result = r
 }
 
 func BenchmarkAccumulatorReadN(b *testing.B) {
