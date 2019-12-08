@@ -17,13 +17,14 @@
 package fortuna
 
 import (
-	"bytes"
 	"crypto/aes"
 	"math"
 	"testing"
+
+	. "gopkg.in/check.v1"
 )
 
-func TestUint64ToBytes(t *testing.T) {
+func (s *fortunaSuite) TestUint64ToBytes(c *C) {
 	testInts := []uint64{0, 1, 2, math.MaxUint64}
 	for i := 0; i < 200; i++ {
 		testInts = append(testInts, 10000000000*uint64(i)+100)
@@ -31,23 +32,17 @@ func TestUint64ToBytes(t *testing.T) {
 	for _, x := range testInts {
 		buf := uint64ToBytes(x)
 
-		if (isZero(buf) && x != 0) || (!isZero(buf) && x == 0) {
-			t.Error("isZero failed for x =", x)
-		}
+		c.Assert((isZero(buf) && x != 0) || (!isZero(buf) && x == 0), Equals, false)
 
 		y := bytesToUint64(buf)
-		if x != y {
-			t.Errorf("uint64<->bytes failed: %d != %d", x, y)
-		}
+		c.Assert(x, DeepEquals, y)
 	}
 }
 
-func TestBytesToUint64(t *testing.T) {
+func (s *fortunaSuite) TestBytesToUint64(c *C) {
 	buf := make([]byte, 8)
 	x := bytesToUint64(buf)
-	if x != 0 {
-		t.Error("bytesToUint64 failed for x=0")
-	}
+	c.Assert(x, DeepEquals, uint64(0x0))
 
 	gen := NewGenerator(aes.NewCipher)
 	gen.Seed(54321)
@@ -55,13 +50,11 @@ func TestBytesToUint64(t *testing.T) {
 		buf = gen.PseudoRandomData(8)
 		x := bytesToUint64(buf)
 		buf2 := uint64ToBytes(x)
-		if !bytes.Equal(buf, buf2) {
-			t.Errorf("bytes<->uint64 failed:\n%v != %v", buf, buf2)
-		}
+		c.Assert(buf, DeepEquals, buf2)
 	}
 }
 
-func TestInt64ToBytes(t *testing.T) {
+func (s *fortunaSuite) TestInt64ToBytes(c *C) {
 	testInts := []int64{math.MinInt64, math.MaxInt64, -1, 0, 1}
 	for i := -100; i <= 100; i++ {
 		testInts = append(testInts, 10000000000*int64(i)+100)
@@ -69,23 +62,17 @@ func TestInt64ToBytes(t *testing.T) {
 	for _, x := range testInts {
 		buf := int64ToBytes(x)
 
-		if (isZero(buf) && x != 0) || (!isZero(buf) && x == 0) {
-			t.Error("isZero failed for x =", x)
-		}
+		c.Assert((isZero(buf) && x != 0) || (!isZero(buf) && x == 0), Equals, false)
 
 		y := bytesToInt64(buf)
-		if x != y {
-			t.Errorf("int64<->bytes failed: %d != %d", x, y)
-		}
+		c.Assert(x, DeepEquals, y)
 	}
 }
 
-func TestBytesToInt64(t *testing.T) {
+func (s *fortunaSuite) TestBytesToInt64(c *C) {
 	buf := make([]byte, 8)
 	x := bytesToInt64(buf)
-	if x != 0 {
-		t.Error("bytesToInt64 failed for x=0")
-	}
+	c.Assert(x, DeepEquals, int64(0x0))
 
 	gen := NewGenerator(aes.NewCipher)
 	gen.Seed(12345)
@@ -93,29 +80,22 @@ func TestBytesToInt64(t *testing.T) {
 		buf = gen.PseudoRandomData(8)
 		x := bytesToInt64(buf)
 		buf2 := int64ToBytes(x)
-		if !bytes.Equal(buf, buf2) {
-			t.Errorf("bytes<->int64 failed:\n%v != %v", buf, buf2)
-		}
+		c.Assert(buf, DeepEquals, buf2)
 	}
 }
 
-func TestIsZero(t *testing.T) {
+func (s *fortunaSuite) TestIsZero(c *C) {
 	buf := make([]byte, 100)
-	if !isZero(buf) {
-		t.Error("isZero failed (1)")
-	}
+	c.Assert(isZero(buf), Equals, true)
+
 	buf[99] = 1
-	if isZero(buf) {
-		t.Error("isZero failed (2)")
-	}
+	c.Assert(isZero(buf), Equals, false)
 }
 
-func TestWipe(t *testing.T) {
+func (s *fortunaSuite) TestWipe(c *C) {
 	buf := []byte{1, 2, 3, 4, 5, 6, 7}
 	wipe(buf)
-	if !isZero(buf) {
-		t.Error("wipe failed")
-	}
+	c.Assert(isZero(buf), Equals, true)
 }
 
 func BenchmarkBytesToUint64(b *testing.B) {

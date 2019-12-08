@@ -17,7 +17,6 @@
 package fortuna
 
 import (
-	"bytes"
 	"crypto/rand"
 	"io"
 	"io/ioutil"
@@ -26,9 +25,17 @@ import (
 	"path/filepath"
 	"testing"
 	"time"
+
+	. "gopkg.in/check.v1"
 )
 
-func TestAccumulator(t *testing.T) {
+func Test(t *testing.T) { TestingT(t) }
+
+type fortunaSuite struct{}
+
+var _ = Suite(&fortunaSuite{})
+
+func (s *fortunaSuite) TestAccumulator(c *C) {
 	// The reference values in this function are generated using the
 	// "Python Cryptography Toolkit",
 	// https://www.dlitz.net/software/pycrypto/ .
@@ -51,9 +58,7 @@ func TestAccumulator(t *testing.T) {
 		90, 222, 127, 26, 195, 88, 191, 216, 22, 200, 245, 158, 162, 218, 10,
 		72, 243, 193, 132, 171, 27, 179, 99, 54, 208,
 	}
-	if !bytes.Equal(out, correct) {
-		t.Error("wrong RNG output")
-	}
+	c.Assert(out, DeepEquals, correct)
 
 	acc.addRandomEvent(0, 0, make([]byte, 32))
 	acc.addRandomEvent(0, 0, make([]byte, 32))
@@ -67,9 +72,8 @@ func TestAccumulator(t *testing.T) {
 		38, 25, 28, 94, 93, 65, 183, 85, 46, 61, 132, 18, 96, 131, 16,
 		138, 241, 1, 22, 192, 249, 66, 242, 153, 112,
 	}
-	if !bytes.Equal(out, correct) {
-		t.Error("wrong RNG output")
-	}
+
+	c.Assert(out, DeepEquals, correct)
 
 	time.Sleep(200 * time.Millisecond)
 
@@ -83,24 +87,21 @@ func TestAccumulator(t *testing.T) {
 		13, 151, 138, 231, 135, 34, 192, 236, 5, 161, 249, 223, 212, 154, 198,
 		14, 222, 197, 232, 75, 199, 134, 56, 58, 212,
 	}
-	if !bytes.Equal(out, correct) {
-		t.Error("wrong RNG output")
-	}
+
+	c.Assert(out, DeepEquals, correct)
 }
 
-func TestClose(t *testing.T) {
+func (s *fortunaSuite) TestClose(c *C) {
 	tempDir, err := ioutil.TempDir("", "")
-	if err != nil {
-		t.Fatalf("TempDir: %v", err)
-	}
+	c.Assert(err, IsNil)
+
 	defer os.RemoveAll(tempDir)
 	seedFileName := filepath.Join(tempDir, "seed")
 
 	for _, name := range []string{"", seedFileName} {
 		acc, err := NewRNG(name)
-		if err != nil {
-			t.Error(err)
-		}
+		c.Assert(err, IsNil)
+
 		acc.RandomData(1)
 		acc.Close()
 		caughtAccessAfterClose := func() (hasPaniced bool) {
@@ -112,24 +113,19 @@ func TestClose(t *testing.T) {
 			acc.RandomData(1)
 			return false
 		}()
-		if !caughtAccessAfterClose {
-			t.Error("failed to detect RNG access after close")
-		}
+		c.Assert(caughtAccessAfterClose, Equals, true)
 	}
 }
 
-func TestReseedingDuringClose(t *testing.T) {
+func (s *fortunaSuite) TestReseedingDuringClose(c *C) {
 	tempDir, err := ioutil.TempDir("", "")
-	if err != nil {
-		t.Fatalf("TempDir: %v", err)
-	}
+	c.Assert(err, IsNil)
+
 	defer os.RemoveAll(tempDir)
 	seedFileName := filepath.Join(tempDir, "seed")
 
 	acc, err := NewRNG(seedFileName)
-	if err != nil {
-		t.Error(err)
-	}
+	c.Assert(err, IsNil)
 
 	buf := make([]byte, 32)
 	sink := acc.NewEntropyDataSink()
@@ -139,6 +135,24 @@ func TestReseedingDuringClose(t *testing.T) {
 	close(sink)
 
 	acc.Close()
+}
+
+func (s *fortunaSuite) TestRandInt63(c *C) {
+	acc, _ := NewRNG("")
+	for i := 0; i < 100; i++ {
+		r := acc.Int63()
+		c.Assert(r, Not(Equals), 0)
+	}
+}
+
+func (s *fortunaSuite) TestRandSeed(c *C) {
+	acc, _ := NewRNG("")
+	defer func() {
+		r := recover()
+		c.Assert(r, NotNil)
+	}()
+
+	acc.Seed(0)
 }
 
 func accumulatorRead(b *testing.B, n int) {
@@ -177,16 +191,6 @@ func BenchmarkCryptoRandRead16(b *testing.B) { cryptoRandRead(b, 16) }
 func BenchmarkCryptoRandRead32(b *testing.B) { cryptoRandRead(b, 32) }
 func BenchmarkCryptoRandRead1k(b *testing.B) { cryptoRandRead(b, 1024) }
 
-func TestRandInt63(t *testing.T) {
-	acc, _ := NewRNG("")
-	for i := 0; i < 100; i++ {
-		r := acc.Int63()
-		if r < 0 {
-			t.Error("Invalid random output")
-		}
-	}
-}
-
 func BenchmarkFortunaInt63(b *testing.B) {
 	acc, _ := NewRNG("")
 	b.ResetTimer()
@@ -213,16 +217,6 @@ func BenchmarkMathRandUint64(b *testing.B) {
 	for i := 0; i < b.N; i++ {
 		_ = mrand.Uint64()
 	}
-}
-
-func TestRandSeed(t *testing.T) {
-	acc, _ := NewRNG("")
-	defer func() {
-		if r := recover(); r == nil {
-			t.Error("Failed to panic")
-		}
-	}()
-	acc.Seed(0)
 }
 
 // compile-time test: Accumulator implements the rand.Source interface
