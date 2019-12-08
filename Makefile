@@ -22,3 +22,6 @@ ci-lint:
 ineffassign:
 	go get -u github.com/gordonklaus/ineffassign/...
 	ineffassign .
+
+bech:
+	 go test -run=XXX -bench=.
