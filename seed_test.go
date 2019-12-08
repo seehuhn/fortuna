@@ -26,6 +26,15 @@ import (
 )
 
 func (s *fortunaSuite) TestSeedfile(c *C) {
+	var err error
+	var rng *Accumulator
+
+	newRNG := func(s string) *Accumulator {
+		c.Assert(err, IsNil)
+		rng, err = NewRNG(s)
+		return rng
+	}
+
 	tempDir, err := ioutil.TempDir("", "")
 	c.Assert(err, IsNil)
 
@@ -33,8 +42,7 @@ func (s *fortunaSuite) TestSeedfile(c *C) {
 	seedFileName := filepath.Join(tempDir, "seed")
 
 	// check that the seed file is created
-	rng, err := NewRNG(seedFileName)
-	c.Assert(err, IsNil)
+	rng = newRNG(seedFileName)
 
 	err = rng.Close()
 	c.Assert(err, IsNil)
@@ -43,7 +51,7 @@ func (s *fortunaSuite) TestSeedfile(c *C) {
 	c.Assert(err, Not(Equals), os.IsNotExist)
 
 	// check that .updateSeedFile() sets the seed and updates the file
-	rng, err = NewRNG(seedFileName)
+	rng = newRNG(seedFileName)
 	c.Assert(err, IsNil)
 
 	rng.gen.reset()
