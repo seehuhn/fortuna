@@ -17,20 +17,19 @@
 package fortuna
 
 import (
-	"bytes"
 	"crypto/aes"
 	"math"
 	"math/rand"
 	"testing"
+
+	. "gopkg.in/check.v1"
 )
 
-func TestConstants(t *testing.T) {
-	if keySize != 32 {
-		t.Error("wrong key size")
-	}
+func (s *fortunaSuite) TestConstants(c *C) {
+	c.Assert(keySize, Equals, 32)
 }
 
-func TestOutput(t *testing.T) {
+func (s *fortunaSuite) TestOutput(c *C) {
 	// The reference values in this function are generated using the
 	// "Python Cryptography Toolkit",
 	// https://www.dlitz.net/software/pycrypto/ .
@@ -49,9 +48,7 @@ func TestOutput(t *testing.T) {
 		251, 61, 65, 141, 100, 59, 228, 23, 215, 58, 107, 248, 248, 103, 57,
 		127, 31, 241, 91, 230, 33, 0, 164, 77, 46,
 	}
-	if !bytes.Equal(out, correct) {
-		t.Error("wrong RNG output")
-	}
+	c.Assert(out, DeepEquals, correct)
 
 	out = rng.PseudoRandomData(1<<20 + 100)[1<<20:]
 	correct = []byte{
@@ -63,9 +60,7 @@ func TestOutput(t *testing.T) {
 		198, 227, 18, 204, 211, 42, 184, 92, 42, 171, 222, 198, 117, 162, 134,
 		116, 109, 77, 195, 187, 139, 37, 78, 224, 63,
 	}
-	if !bytes.Equal(out, correct) {
-		t.Error("wrong RNG output")
-	}
+	c.Assert(out, DeepEquals, correct)
 
 	rng.Reseed([]byte{5})
 	out = rng.PseudoRandomData(100)
@@ -78,30 +73,20 @@ func TestOutput(t *testing.T) {
 		162, 69, 68, 207, 251, 101, 10, 29, 33, 133, 87, 189, 36, 229, 56,
 		17, 100, 138, 49, 79, 239, 210, 189, 141, 46,
 	}
-	if !bytes.Equal(out, correct) {
-		t.Error("wrong RNG output")
-	}
+	c.Assert(out, DeepEquals, correct)
 }
 
-func TestReseed(t *testing.T) {
+func (s *fortunaSuite) TestReseed(c *C) {
 	rng := NewGenerator(aes.NewCipher)
-	if len(rng.key) != 32 {
-		t.Error("wrong key size")
-	}
-	if len(rng.counter) != 16 {
-		t.Error("wrong key size")
-	}
+	c.Assert(rng.key, HasLen, keySize)
+	c.Assert(rng.counter, HasLen, 16)
 
 	rng.Reseed(nil)
-	if len(rng.key) != 32 {
-		t.Error("wrong key size after reseeding")
-	}
-	if len(rng.counter) != 16 {
-		t.Error("wrong key size after reseeding")
-	}
+	c.Assert(rng.key, HasLen, keySize)
+	c.Assert(rng.counter, HasLen, 16)
 }
 
-func TestSeed(t *testing.T) {
+func (s *fortunaSuite) TestSeed(c *C) {
 	rng := NewGenerator(aes.NewCipher)
 
 	for _, seed := range []int64{0, 1, 1 << 62} {
@@ -109,13 +94,11 @@ func TestSeed(t *testing.T) {
 		x := rng.PseudoRandomData(1000)
 		rng.Seed(seed)
 		y := rng.PseudoRandomData(1000)
-		if !bytes.Equal(x, y) {
-			t.Error(".Seed() doesn't determine generator state")
-		}
+		c.Assert(x, DeepEquals, y)
 	}
 }
 
-func TestPrng(t *testing.T) {
+func (s *fortunaSuite) TestPrng(c *C) {
 	rng := NewGenerator(aes.NewCipher)
 	rng.Seed(123)
 
@@ -130,9 +113,8 @@ func TestPrng(t *testing.T) {
 	}
 
 	d := (float64(pos) - 0.5*float64(n)) / math.Sqrt(0.25*float64(n))
-	if math.Abs(d) >= 4 {
-		t.Error("wrong distribution")
-	}
+
+	c.Assert((math.Abs(d) >= 4), Equals, false)
 }
 
 func BenchmarkIncCounter(b *testing.B) {

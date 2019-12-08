@@ -19,9 +19,11 @@ package fortuna
 import (
 	"testing"
 	"time"
+
+	. "gopkg.in/check.v1"
 )
 
-func TestPoolSelection(t *testing.T) {
+func (s *fortunaSuite) TestPoolSelection(c *C) {
 	acc, _ := NewRNG("")
 	sink := acc.NewEntropyDataSink()
 
@@ -33,9 +35,9 @@ func TestPoolSelection(t *testing.T) {
 	size := acc.poolZeroSize
 	acc.poolMutex.Unlock()
 
-	if size != 2*(2+len(msg)) {
-		t.Error("distribution of events over pools failed")
-	}
+	l := len(msg)
+
+	c.Assert(size, Equals, 2*(2+l))
 }
 
 func BenchmarkAddRandomEvent(b *testing.B) {

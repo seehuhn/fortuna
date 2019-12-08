@@ -21,84 +21,68 @@ import (
 	"io/ioutil"
 	"os"
 	"path/filepath"
-	"testing"
+
+	. "gopkg.in/check.v1"
 )
 
-func TestSeedfile(t *testing.T) {
+func (s *fortunaSuite) TestSeedfile(c *C) {
 	tempDir, err := ioutil.TempDir("", "")
-	if err != nil {
-		t.Fatalf("TempDir: %v", err)
-	}
+	c.Assert(err, IsNil)
+
 	defer os.RemoveAll(tempDir)
 	seedFileName := filepath.Join(tempDir, "seed")
 
 	// check that the seed file is created
 	rng, err := NewRNG(seedFileName)
-	if err != nil {
-		t.Fatal(err)
-	}
+	c.Assert(err, IsNil)
+
 	err = rng.Close()
-	if err != nil {
-		t.Fatal(err)
-	}
-	if _, err := os.Stat(seedFileName); os.IsNotExist(err) {
-		t.Error("seed file not found")
-	}
+	c.Assert(err, IsNil)
+
+	_, err = os.Stat(seedFileName)
+	c.Assert(err, Not(Equals), os.IsNotExist)
 
 	// check that .updateSeedFile() sets the seed and updates the file
 	rng, err = NewRNG(seedFileName)
-	if err != nil {
-		t.Fatal(err)
-	}
+	c.Assert(err, IsNil)
+
 	rng.gen.reset()
 	before, err := ioutil.ReadFile(seedFileName)
-	if err != nil {
-		t.Error(err)
-	}
+	c.Assert(err, IsNil)
+
 	err = rng.updateSeedFile()
-	if err != nil {
-		t.Error(err)
-	}
+	c.Assert(err, IsNil)
+
 	after, err := ioutil.ReadFile(seedFileName)
-	if err != nil {
-		t.Error(err)
-	}
+	c.Assert(err, IsNil)
+
 	// the following would panic if the seed is not reset
 	rng.RandomData(1)
 	err = rng.Close()
-	if err != nil {
-		t.Error(err)
-	}
-	if len(before) != seedFileSize || bytes.Equal(before, after) {
-		t.Error("seed file not correctly updated")
-	}
+	c.Assert(err, IsNil)
+
+	c.Assert((len(before) != seedFileSize || bytes.Equal(before, after)), Equals, false)
 
 	// check that insecure seed files are detected
 	err = os.Chmod(seedFileName, os.FileMode(0644))
-	if err != nil {
-		t.Fatal(err)
-	}
+	c.Assert(err, IsNil)
+
 	rng, err = NewRNG(seedFileName)
-	if err != ErrInsecureSeed {
-		t.Error("insecure seed file not detected")
-	}
+	c.Assert(err, Not(ErrorMatches), ErrInsecureSeed)
+
 	if rng != nil {
 		rng.Close()
 	}
 	err = os.Chmod(seedFileName, os.FileMode(0600))
-	if err != nil {
-		t.Fatal(err)
-	}
+	c.Assert(err, IsNil)
 
 	// check that seed files of wrong length are detected
 	err = ioutil.WriteFile(seedFileName, []byte("Hello"), os.FileMode(0600))
-	if err != nil {
-		t.Error(err)
-	}
+	c.Assert(err, IsNil)
+
 	rng, err = NewRNG(seedFileName)
-	if err != ErrCorruptedSeed {
-		t.Error("corrupted seed file not detected:", err)
-	}
+	c.Assert(err, Not(ErrorMatches), ErrCorruptedSeed)
+
 	if rng != nil {
 		rng.Close()
 	}
