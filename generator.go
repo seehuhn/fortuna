@@ -169,6 +169,7 @@ func NewGenerator(newCipher NewCipher) *Generator {
 // be set using the .Reseed() or .Seed() methods before the generator
 // can be used again.  This is mostly useful for unit testing, to
 // start the PRNG from a known state.
+// TODO: the block is not reset. Should it be?
 func (gen *Generator) reset() {
 	zeroKey := make([]byte, keySize)
 	gen.setKey(zeroKey)

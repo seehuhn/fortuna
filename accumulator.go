@@ -201,7 +201,7 @@ func (acc *Accumulator) tryReseeding() []byte {
 // RandomData returns a slice of n random bytes.  The result can be
 // used as a replacement for a sequence of uniformly distributed and
 // independent bytes, and will be difficult to guess for an attacker.
-func (acc *Accumulator) RandomData(n uint) []byte {
+func (acc *Accumulator) RandomData(size uint) []byte {
 	seed := acc.tryReseeding()
 	acc.genMutex.Lock()
 	defer acc.genMutex.Unlock()
@@ -210,7 +210,7 @@ func (acc *Accumulator) RandomData(n uint) []byte {
 		acc.gen.Reseed(seed)
 	}
 
-	return acc.gen.PseudoRandomData(n)
+	return acc.gen.PseudoRandomData(size)
 }
 
 func (acc *Accumulator) randomDataUnlocked(n uint) []byte {

@@ -21,3 +21,5 @@ way.  This file lists a possible directions for future work.
 
 - The library seems to use panics for errors. Let's check if this is the
   correct thing
+
+- Change the sha usage

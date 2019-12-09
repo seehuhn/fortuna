@@ -40,11 +40,32 @@ func (s *fortunaSuite) TestAccumulator(c *C) {
 	// "Python Cryptography Toolkit",
 	// https://www.dlitz.net/software/pycrypto/ .
 
-	acc, _ := NewRNG("")
-	acc.gen.reset()
+	acc, err := NewRNG("")
+	expCounter := []byte{
+		0x1, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0,
+	}
 
-	acc.addRandomEvent(0, 0, make([]byte, 32))
-	acc.addRandomEvent(0, 0, make([]byte, 32))
+	c.Assert(err, IsNil)
+	c.Assert(acc.gen.counter, DeepEquals, expCounter)
+	c.Assert(acc.gen.cipher, NotNil)
+	c.Assert(acc.gen.key, NotNil)
+
+	expCounter = []byte{
+		0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0,
+	}
+
+	expKey := []byte{
+		0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0,
+	}
+
+	acc.gen.reset()
+	c.Assert(acc.gen.counter, DeepEquals, expCounter)
+	c.Assert(acc.gen.cipher, NotNil)
+	c.Assert(acc.gen.key, DeepEquals, expKey)
+
+	seq := 32
+	acc.addRandomEvent(0, 0, make([]byte, seq))
+	acc.addRandomEvent(0, 0, make([]byte, seq))
 	for i := uint(0); i < 1000; i++ {
 		acc.addRandomEvent(1, i, []byte{1, 2})
 	}
@@ -61,9 +82,18 @@ func (s *fortunaSuite) TestAccumulator(c *C) {
 	c.Assert(out, DeepEquals, correct)
 
 	acc.addRandomEvent(0, 0, make([]byte, 32))
+	c.Assert(acc.poolZeroSize, Equals, 34)
+
 	acc.addRandomEvent(0, 0, make([]byte, 32))
-	out = acc.RandomData(100)
-	correct = []byte{
+	c.Assert(acc.poolZeroSize, Equals, 68)
+
+	size := uint(100)
+	out = acc.RandomData(size)
+
+	expCounter = []byte{
+		0x13, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0,
+	}
+	expRandomBytes := []byte{
 		34, 163, 146, 161, 13, 93, 118, 204, 224, 58, 215, 141, 198, 90, 38,
 		26, 174, 151, 129, 91, 249, 30, 91, 23, 199, 5, 180, 150, 94, 201,
 		10, 223, 129, 189, 162, 116, 22, 255, 130, 183, 50, 39, 168, 7, 98,
@@ -73,12 +103,17 @@ func (s *fortunaSuite) TestAccumulator(c *C) {
 		138, 241, 1, 22, 192, 249, 66, 242, 153, 112,
 	}
 
-	c.Assert(out, DeepEquals, correct)
+	c.Assert(acc.gen.counter, DeepEquals, expCounter)
+	c.Assert(out, DeepEquals, expRandomBytes)
 
 	time.Sleep(200 * time.Millisecond)
 
-	out = acc.RandomData(100)
-	correct = []byte{
+	out = acc.RandomData(size)
+
+	expCounter = []byte{
+		0x1d, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0,
+	}
+	expRandomBytes = []byte{
 		98, 9, 233, 102, 1, 195, 243, 88, 163, 4, 58, 74, 146, 155, 152,
 		92, 11, 229, 110, 108, 123, 100, 237, 1, 151, 50, 103, 163, 120, 47,
 		209, 232, 249, 100, 33, 102, 126, 37, 133, 104, 57, 148, 187, 255, 186,
@@ -88,7 +123,8 @@ func (s *fortunaSuite) TestAccumulator(c *C) {
 		14, 222, 197, 232, 75, 199, 134, 56, 58, 212,
 	}
 
-	c.Assert(out, DeepEquals, correct)
+	c.Assert(acc.gen.counter, DeepEquals, expCounter)
+	c.Assert(out, DeepEquals, expRandomBytes)
 }
 
 func (s *fortunaSuite) TestClose(c *C) {
