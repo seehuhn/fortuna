@@ -21,8 +21,8 @@ import (
 	"crypto/cipher"
 	"crypto/rand"
 	"io"
-	"io/ioutil"
 	"net"
+	"os"
 	"os/user"
 	"time"
 
@@ -102,7 +102,7 @@ func (gen *Generator) setInitialSeed() {
 	// source 2: try different files with timer information, interrupt
 	// counts, etc. (difficult to predict for an attacker)
 	for _, fname := range []string{"/proc/timer_list", "/proc/stat"} {
-		buffer, _ := ioutil.ReadFile(fname)
+		buffer, _ := os.ReadFile(fname)
 		n, _ := seedData.Write(buffer)
 		wipe(buffer)
 		isGood = isGood || (n >= 1024)
