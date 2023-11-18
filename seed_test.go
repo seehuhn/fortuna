@@ -18,18 +18,14 @@ package fortuna
 
 import (
 	"bytes"
-	"io/ioutil"
 	"os"
 	"path/filepath"
 	"testing"
 )
 
 func TestSeedfile(t *testing.T) {
-	tempDir, err := ioutil.TempDir("", "")
-	if err != nil {
-		t.Fatalf("TempDir: %v", err)
-	}
-	defer os.RemoveAll(tempDir)
+	tempDir := os.TempDir()
+	defer os.Remove(tempDir)
 	seedFileName := filepath.Join(tempDir, "seed")
 
 	// check that the seed file is created
@@ -51,7 +47,7 @@ func TestSeedfile(t *testing.T) {
 		t.Fatal(err)
 	}
 	rng.gen.reset()
-	before, err := ioutil.ReadFile(seedFileName)
+	before, err := os.ReadFile(seedFileName)
 	if err != nil {
 		t.Error(err)
 	}
@@ -59,7 +55,7 @@ func TestSeedfile(t *testing.T) {
 	if err != nil {
 		t.Error(err)
 	}
-	after, err := ioutil.ReadFile(seedFileName)
+	after, err := os.ReadFile(seedFileName)
 	if err != nil {
 		t.Error(err)
 	}
@@ -91,7 +87,7 @@ func TestSeedfile(t *testing.T) {
 	}
 
 	// check that seed files of wrong length are detected
-	err = ioutil.WriteFile(seedFileName, []byte("Hello"), os.FileMode(0600))
+	err = os.WriteFile(seedFileName, []byte("Hello"), os.FileMode(0600))
 	if err != nil {
 		t.Error(err)
 	}

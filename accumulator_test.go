@@ -20,7 +20,6 @@ import (
 	"bytes"
 	"crypto/rand"
 	"io"
-	"io/ioutil"
 	mrand "math/rand"
 	"os"
 	"path/filepath"
@@ -89,11 +88,8 @@ func TestAccumulator(t *testing.T) {
 }
 
 func TestClose(t *testing.T) {
-	tempDir, err := ioutil.TempDir("", "")
-	if err != nil {
-		t.Fatalf("TempDir: %v", err)
-	}
-	defer os.RemoveAll(tempDir)
+	tempDir := os.TempDir()
+	defer os.Remove(tempDir)
 	seedFileName := filepath.Join(tempDir, "seed")
 
 	for _, name := range []string{"", seedFileName} {
@@ -119,11 +115,8 @@ func TestClose(t *testing.T) {
 }
 
 func TestReseedingDuringClose(t *testing.T) {
-	tempDir, err := ioutil.TempDir("", "")
-	if err != nil {
-		t.Fatalf("TempDir: %v", err)
-	}
-	defer os.RemoveAll(tempDir)
+	tempDir := os.TempDir()
+	defer os.Remove(tempDir)
 	seedFileName := filepath.Join(tempDir, "seed")
 
 	acc, err := NewRNG(seedFileName)

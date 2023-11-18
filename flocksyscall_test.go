@@ -1,20 +1,17 @@
+//go:build darwin || freebsd || linux || netbsd || openbsd
 // +build darwin freebsd linux netbsd openbsd
 
 package fortuna
 
 import (
-	"io/ioutil"
 	"os"
 	"path/filepath"
 	"testing"
 )
 
 func TestFlock(t *testing.T) {
-	tempDir, err := ioutil.TempDir("", "")
-	if err != nil {
-		t.Fatalf("TempDir: %v", err)
-	}
-	defer os.RemoveAll(tempDir)
+	tempDir := os.TempDir()
+	defer os.Remove(tempDir)
 	testFileName := filepath.Join(tempDir, "test")
 
 	file1, err := os.Create(testFileName)
@@ -61,11 +58,8 @@ func TestFlock(t *testing.T) {
 }
 
 func TestFlockClose(t *testing.T) {
-	tempDir, err := ioutil.TempDir("", "")
-	if err != nil {
-		t.Fatalf("TempDir: %v", err)
-	}
-	defer os.RemoveAll(tempDir)
+	tempDir := os.TempDir()
+	defer os.Remove(tempDir)
 	testFileName := filepath.Join(tempDir, "test")
 
 	file1, err := os.Create(testFileName)
@@ -100,11 +94,8 @@ func TestFlockClose(t *testing.T) {
 }
 
 func TestSeedFileSharing(t *testing.T) {
-	tempDir, err := ioutil.TempDir("", "")
-	if err != nil {
-		t.Fatalf("TempDir: %v", err)
-	}
-	defer os.RemoveAll(tempDir)
+	tempDir := os.TempDir()
+	defer os.Remove(tempDir)
 	seedFileName := filepath.Join(tempDir, "seed")
 
 	rng1, err := NewRNG(seedFileName)
