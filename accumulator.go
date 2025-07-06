@@ -64,11 +64,16 @@ type Accumulator struct {
 // generator.
 //
 // The argument seedFileName gives the name of a file where a small
-// amount of randomness can be stored between runs of the program; the
-// program must be able to both read and write this file.  The
-// contents of the seed file must be kept secret and seed files must
+// amount of randomness (64 bytes) can be stored between runs of the program.
+// The library automatically manages this file - you don't need to create or
+// modify it. The program must be able to both read and write this file.
+// The contents of the seed file must be kept secret and seed files must
 // not be shared between concurrently running instances of the random
 // number generator.
+//
+// For concurrent access, either share one RNG instance across goroutines
+// (recommended, as Accumulator is thread-safe) or use separate RNG instances
+// with different seedFileName values.
 //
 // In case the seed file does not exist, a new seed file is created.
 // If a corrupted seed file is found, ErrCorruptedSeed is returned.
@@ -157,7 +162,7 @@ func (acc *Accumulator) tearDownPools() {
 		data = acc.pool[i].Sum(data)
 		acc.pool[i] = nil
 	}
-	acc.poolZeroSize = 0 // prevent accidential last-minute reseeding
+	acc.poolZeroSize = 0 // prevent accidental last-minute reseeding
 	acc.poolMutex.Unlock()
 
 	acc.genMutex.Lock()
@@ -203,7 +208,11 @@ func (acc *Accumulator) RandomData(n uint) []byte {
 	return acc.gen.PseudoRandomData(n)
 }
 
-func (acc *Accumulator) randomDataUnlocked(n uint) []byte {
+// randomDataUnsafe returns n random bytes without acquiring the generator
+// mutex. This function is unsafe for concurrent use and must only be called by
+// code that already holds acc.genMutex. It exists to avoid mutex deadlocks in
+// internal functions that need random data while already holding the lock.
+func (acc *Accumulator) randomDataUnsafe(n uint) []byte {
 	seed := acc.tryReseeding()
 	if seed != nil {
 		acc.gen.Reseed(seed)

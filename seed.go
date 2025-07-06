@@ -90,7 +90,7 @@ func (acc *Accumulator) updateSeedFile() error {
 		return ErrCorruptedSeed
 	}
 
-	seed := acc.randomDataUnlocked(seedFileSize)
+	seed := acc.randomDataUnsafe(seedFileSize)
 	return doWriteSeed(acc.seedFile, seed)
 }
 

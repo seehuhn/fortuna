@@ -1,7 +1,7 @@
 While this implementation of the fortuna random number generator is
 complete, I intend to polish and extend the package over time.  My
 aims are to make the user interface as intuitive as possible and to
-reduce the probablity of accidentially using the package in an unsafe
+reduce the probablity of accidentally using the package in an unsafe
 way.  This file lists a possible directions for future work.
 
 - Currently, the allocated source numbers for entropy sources wrap
